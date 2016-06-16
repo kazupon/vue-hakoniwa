@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <h1>computed property via vm</h1>
+      <p>valid: {{ valid }}</p>
+      <p>invalid: {{ invalid }}</p>
+    </div>
+    <script>
+      var validationResult = {
+        data: function () {
+          return { 
+            validators: []
+          }
+        },
+        destroyed: function () {
+          console.log('destroyed validation result instance')
+        },
+        computed: {
+          valid: function () {
+            var ret = null;
+            if (this.validators.length === 0) { return ret }
+            ret = true
+            for (var i = 0; i < this.validators.length; i++) {
+              var validator = this.validators[i]
+              if (typeof validator === 'boolean' && !validator) {
+                ret = false
+                break
+              }
+              if (typeof validator === 'string' && validator) {
+                ret = false
+                break
+              }
+            }
+            return ret
+          },
+          invalid: function () {
+            if (this.valid === null) { return null }
+            return !this.valid
+          }
+        }
+      }
+      var vm = new Vue({
+        data: {
+          field1: null,
+          field2: null
+        },
+        created: function () {
+          this._fields = [new Vue(validationResult), new Vue(validationResult)]
+          this.field1 = this._fields[0]
+          this.field2 = this._fields[1]
+        },
+        beforeDestroy: function () {
+          for (var i = 0; i < this._fields.length; i++) {
+            var field = this._fields[i]
+            field.$destroy()
+            this['field' + (i + 1).toString()] = null
+            this._fields[i] = null
+          }
+          this._fields = []
+        },
+        computed: {
+          valid: function () {
+            var ret = true
+            var fields = [this.field1, this.field2]
+            for (var i = 0; i < fields.length; i++) {
+              var field = fields[i]
+              if (field && !field.valid) {
+                ret = false
+                break
+              }
+            }
+            return ret
+          },
+          invalid: function () {
+            return !this.valid
+          }
+        }
+      }).$mount('#app')
+      setTimeout(function () {
+        vm.field1.validators = [true]
+        vm.field2.validators = [true]
+        setTimeout(function () {
+          vm.field1.validators = []
+          vm.field1.validators = ['required']
+          setTimeout(function () {
+            vm.$destroy()
+          }, 1000)
+        }, 1000)
+      }, 1000)
+    </script>
+  </body>
+</html>
