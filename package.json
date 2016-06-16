@@ -1,0 +1,23 @@
+{
+  "name": "vue-hakoniwa",
+  "description": "My experimental space for Vue.js",
+  "version": "0.0.1",
+  "bugs": {
+    "url": "https://github.com/kazupon/vue-hakoniwa/issues"
+  },
+  "homepage": "https://github.com/kazupon/vue-hakoniwa#readme",
+  "keywords": [
+    "sandbox",
+    "vue.js"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kazupon/vue-hakoniwa.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
