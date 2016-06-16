@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>{{ msg }}</p>
+      <child @focus="onFocus" v-demo:hello.a.b="msg"></child>
+    </div>
+    <script>
+      Vue.directive('demo', {
+        bind: function (el, binding, vnode) {
+          console.log('demo#bind', el, binding, vnode)
+            for(var i = 0; i < el.children.length; i++) {
+              console.log(el.children[i].tagName)
+            }
+        },
+        update: function (el, binding, vnode, oldVnode) {
+          console.log('demo#bind', el, binding, vnode, oldVnode)
+        }
+      })
+      var vm = new Vue({
+        data: {
+          msg: 'hello'
+        },
+        components: {
+          child: {
+            template: '<div class="foo"><input @focus="onFocus" type="text"><sub-child @focus="onSubFocus" v-demo></sub-child></div>',
+            components: {
+              'sub-child': {
+                template: '<ul><li><input @focus="onFocus"><p>hello</p></li></ul>',
+                methods: {
+                  onFocus: function (e) {
+                    console.log('sub child focus event', e)
+                    this.$emit('focus', e)
+                  }
+                }
+              }
+            },
+            methods: {
+              onFocus: function (e) {
+                console.log('child focus event', e)
+                this.$emit('focus', e)
+              },
+              onSubFocus: function (e) {
+                console.log('child sub-focus event', e)
+              }
+            }
+          }
+        },
+        methods: {
+          onFocus: function (e) {
+            console.log('parent focus event', e)
+          }
+        }
+      }).$mount('#app')
+      vm.msg = 'foo'
+    </script>
+  </body>
+</html>
