@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>{{ msg }}</p>
+      <validate v-model="msg">
+      <input type="text" value="'he'">
+      </validate>
+    </div>
+    <script>
+      var vm = new Vue({
+        data: {
+          msg: 'hello'
+        },
+        components: {
+          validate: {
+            template: '<div class="validate"><slot></slot></div>',
+            props: ['value'],
+            mounted: function () {
+              console.log(this.$el)
+            },
+            destroyed: function () {
+            }
+          }
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+  </body>
+</html>
