@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <form id="app">
+      <input type="text" @input="onInput" @focus="onFocus" @blur="onBlur" v-model="msg">
+    </form>
+    <script>
+      var vm = new Vue({
+        data: { msg: 'hello' },
+        methods: {
+          onInput: function (e) {
+            console.log('input event', e)
+          },
+          onFocus: function (e) {
+            console.log('focus event', e)
+          },
+          onBlur: function (e) {
+            console.log('blur event', e)
+          }
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+</html>
