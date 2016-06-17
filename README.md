@@ -1,4 +1,4 @@
-# vue-hakoniwa
+# :cactus: vue-hakoniwa
 
 My experimental space for Vue.js
 
