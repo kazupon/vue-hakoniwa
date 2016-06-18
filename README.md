@@ -1,6 +1,6 @@
 # :cactus: vue-hakoniwa
 
-My experimental space for Vue.js
+My experimental playground for Vue.js 2.0
 
 ## License
 
