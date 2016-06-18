@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <h1>Dynamically properties via computed properities</h1>
+    <div id="app">
+      <input type="text" v-model="prop"><br/>
+      <input type="text" v-model="val"><br/>
+      <a href="javascript:void(0)" @click="onAdd">add</a>
+      <a href="javascript:void(0)" @click="onRemove">remove</a>
+      <pre>validation: {{ validation }}</pre>
+    </div>
+    <script>
+      var store = {}
+      var obj = {}
+      Vue.util.defineReactive(store, 'validation', obj)
+
+      var vm = new Vue({
+        data: {
+          prop: 'key1',
+          val: 'val1'
+        },
+        computed: {
+          validation: function () {
+            return store.validation
+          }
+        },
+        watch: {
+          validation: function (val, old) {
+            console.log('watch validation:', val, old)
+          }
+        },
+        methods: {
+          onAdd: function () {
+            Vue.set(obj, this.prop, this.val)
+            console.log('add', store)
+          },
+          onRemove: function () {
+            Vue.delete(obj, this.prop)
+            console.log('remove', store)
+          }
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+  </body>
+</html>
