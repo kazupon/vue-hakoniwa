@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <func-comp :msg="test"> msg<foo v-valid="'ff'"></foo></func-comp>
+      <input type="text" v-model="test">
+    </div>
+    <script>
+      var vm = new Vue({
+        data: {
+          test: 'hello'
+        },
+        directives: {
+          valid: {
+            bind: function (el, binding, vnode) {
+              console.log('valid#bind', el, binding, vnode)
+            }
+          }
+        },
+        components: {
+          foo: {
+            template: '<div class="foo"><p>foo</p></div>'
+          },
+          funcComp: {
+            functional: true,
+            props: ['msg'],
+            render: function (h, props, children) {
+              console.log('funcComp#render', this, h, props, children)
+              return h('div', null, [' ', props.msg].concat(children))
+            }
+          }
+        }
+      }).$mount('#app')
+      console.log(vm)
+    </script>
+  </body>
+  </body>
+</html>
