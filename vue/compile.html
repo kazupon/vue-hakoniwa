@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+    </div>
+    <script>
+      var res = Vue.compile('<p>{{ msg }}</p>')
+      var vm = new Vue({
+        data: {
+          msg: 'hello'
+        },
+        render: res.render,
+        staticRenderFns: res.staticRenderFns
+      }).$mount('#app')
+    </script>
+  </body>
+  </body>
+</html>
