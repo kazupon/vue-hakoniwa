@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+    </div>
+    <script>
+      const components = {
+        one: { template: '<div>one</div>' },
+        two: { template: '<div>two</div>' }
+      }
+      const { render, staticRenderFns } = Vue.compile(`<div>
+        <div>
+          <input type="radio" v-model="view" value="one">one:<br/>
+          <input type="radio" v-model="view" value="two">two:<br/>
+        </div>
+        <div :key="view" class="test" transition="test" transition-mode="out-in">
+          <p>head:{{view}}</p>
+          {{view}}
+          <p>foot:{{view}}</p>
+        </div>
+      </div>`)
+      console.log('render', render.toString())
+      console.log('staticRenderFns', staticRenderFns.toString())
+
+      const vm = new Vue({
+        data: {
+          view: 'one'
+        },
+        components,
+        render,
+        staticRenderFns,
+        transitions: {
+          test: {
+            afterEnter () {
+              console.log('afterEnter', this)
+            },
+            afterLeave () {
+              console.log('afterLeave', this)
+            }
+          }
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+  </body>
+</html>
