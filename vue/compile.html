@@ -9,13 +9,13 @@
     <div id="app">
     </div>
     <script>
-      var res = Vue.compile('<p>{{ msg }}</p>')
-      var vm = new Vue({
+      const { render, staticRenderFns } = Vue.compile('<p>{{ msg }}</p>')
+      const vm = new Vue({
         data: {
           msg: 'hello'
         },
-        render: res.render,
-        staticRenderFns: res.staticRenderFns
+        render,
+        staticRenderFns
       }).$mount('#app')
     </script>
   </body>
