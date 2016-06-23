@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+    </div>
+    <script>
+      Vue.directive('validate', {
+        bind: function (el, binding, vnode) {
+          console.log('dir validate#bind', el, binding, vnode)
+        }
+      })
+
+      const { render, staticRenderFns } = Vue.compile(`<div>
+        <p>{{test}}</p>
+        <input type="checkbox" v-model="show">
+        <func-comp :msg="test">
+          <input type="text" v-validate="test" v-model="test">
+          <comp v-if="show" :prop="test"></comp>
+        </func-comp>
+      </div>`)
+      console.log('render', render.toString())
+      console.log('staticRenderFns', staticRenderFns.toString())
+
+      const vm = new Vue({
+        data: {
+          test: 'hello',
+          show: true,
+        },
+        components: {
+          comp: {
+            template: '<p>{{prop}}:{{c1}}:{{c2}}</p>',
+            props: ['prop'],
+            computed: {
+              c1 () { return 1 }
+            },
+            created () {
+              console.log('comp#created')
+            },
+            destroyed () {
+              console.log('comp#destoryed')
+            }
+          },
+          funcComp: {
+            functional: true,
+            props: ['msg'],
+            render: function (h, props, children) {
+              console.log('funcComp#render', this, h, props, children)
+              if (children.length === 3) {
+                const comp = children[2]
+                console.log(comp.child, comp.componentOptions.Ctor.options)
+                comp.componentOptions.Ctor.options.computed['c2'] = function () { return 2 }
+              }
+              return h('div', null, [' ', props.msg].concat(children))
+            }
+          }
+        },
+        render,
+        staticRenderFns
+      }).$mount('#app')
+    </script>
+  </body>
+  </body>
+</html>
