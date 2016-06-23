@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>{{msg}}</p>
+      <pre></pre>
+      <validatable name="field1">
+        <input type="text" v-model="msg" v-validate.input.blur="'required'">
+      </validatable>
+    </div>
+    <script>
+      const { bind } = Vue.util
+
+      Vue.directive('validate', {
+        bind (el, binding, vnode) {
+          console.log('validate#bind', el, binding, vnode)
+          const { input, blur, focus } = binding.modifiers
+          if (input) {
+            el.addEventListener('input', vnode.host.onInput)
+          }
+          // TODO: something listen ...
+          // 
+        },
+        unbind (el, binding, vnode, oldVNode) {
+          console.log('validate#unbind', el, binding, vnode, oldVNode)
+          const { input, blur, focus } = binding.modifiers
+          if (input) {
+            el.removeEventListener('input', vnode.host.onInput)
+          }
+          // TODO: something listen ...
+          // 
+        }
+      })
+
+      function getValidatorResult (name) {
+        let ret = null
+        if (this.validators.length === 0) { return false }
+        ret = false
+        for (let i = 0; i < this.validators.length; i++) {
+          const validator = this.validators[i]
+          if (validator.name !== name) {
+            continue
+          } else {
+            if (typeof validator.value === 'boolean' && !validator.value) {
+              ret = true
+              break
+            }
+            if (typeof validator.value === 'string' && !validator.value) {
+              ret = validator.value
+              break
+            }
+          }
+        }
+        return ret
+      }
+
+      Vue.component('validate-control', {
+        props: {
+          name: String,
+          child: Object
+        },
+        data () {
+          return {
+            validators: [],
+            dirty: false,
+            modified: false
+          }
+        },
+        computed: {
+          valid () {
+            let ret = null;
+            if (this.validators.length === 0) { return true }
+            ret = true
+            for (let i = 0; i < this.validators.length; i++) {
+              const validator = this.validators[i]
+              if (typeof validator.value === 'boolean' && !validator.value) {
+                ret = false
+                break
+              }
+              if (typeof validator.value === 'string' && validator.value) {
+                ret = false
+                break
+              }
+            }
+            return ret
+          },
+          invalid () {
+            return !this.valid
+          },
+          pristin () {
+            return !this.dirty
+          }
+        },
+        render (h) {
+          this.child.host = this
+          console.log('validate-control#render', this.child, this._vnode)
+
+          return this.child
+        },
+        mounted () {
+          this._value = this.$el.value
+          console.log('validate-control#mounted', this._value)
+        },
+        updated () {
+          console.log('validate-control#updated', this._value)
+        },
+        methods: {
+          onInput (e) {
+            this.validators = []
+
+            const value = e.target.value
+            if (!this.dirty && this._value !== value) {
+              this.dirty = true
+            }
+            this.modified = this._value !== value
+
+            // TODO: should be validated here...
+            if (value.length === 0) {
+              this.validators.push({ name: 'required', value: false })
+            }
+
+            e.vm = this
+            this.$emit('input', e)
+          }
+        }
+      })
+
+      Vue.component('validatable', {
+        functional: true,
+        props: ['name'],
+        render (h, props, children) {
+          console.log('validatable#render', props, children)
+          const child = props.child = children[0]
+          const comp = h('validate-control', { props })
+          const computed = comp.componentOptions.Ctor.options.computed || {}
+          child.data.directives.forEach(dir => {
+            if (dir.name === 'validate') {
+              computed[dir.value] = bind(() => {
+                return bind(getValidatorResult, comp.child)(dir.value)
+              }, comp.child)
+            }
+          })
+          return comp
+        }
+      })
+
+      const vm = new Vue({
+        data: {
+          msg: 'hello'
+        },
+        methods: {
+          onParentInput (e) {
+            console.log('onParentInput', e)
+          }
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+</html>
