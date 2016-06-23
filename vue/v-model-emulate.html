@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>{{ msg }}</p>
+      <input type="text" :value="msg" @input="msg = $event.target.value">
+      <input type="text" v-model="msg">
+    </div>
+    <script>
+      var vm = new Vue({
+        data: {
+          msg: 'hello'
+        }
+      }).$mount('#app')
+      var vnode = vm._vnode
+      var input1 = vnode.children[2]
+      var input2 = vnode.children[4]
+      console.log('input1.data.on.input.fn', input1.data.on.input.fn.toString())
+      console.log('input1.data.on.input.invoker', input1.data.on.input.invoker.toString())
+      console.log('input2.data.on.input.fn', input2.data.on.input.fn.toString())
+      console.log('input2.data.on.input.invoker', input2.data.on.input.invoker.toString())
+    </script>
+  </body>
+</html>
