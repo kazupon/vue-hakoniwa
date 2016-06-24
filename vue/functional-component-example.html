@@ -8,9 +8,9 @@
   <body>
     <div id="app">
       <p>{{msg}}</p>
-      <pre></pre>
+      <pre>{{$data}}</pre>
       <validatable name="field1">
-        <input type="text" v-model="msg" v-validate.input.blur="'required'">
+        <input @valid="valid++" type="text" v-model="msg" v-validate.input.blur="'required'">
       </validatable>
     </div>
     <script>
@@ -19,6 +19,8 @@
       Vue.directive('validate', {
         bind (el, binding, vnode) {
           console.log('validate#bind', el, binding, vnode)
+          console.log(vnode.data.on.valid.fn.toString())
+          console.log(vnode.data.on.valid.invoker.toString())
           const { input, blur, focus } = binding.modifiers
           if (input) {
             el.addEventListener('input', vnode.host.onInput)
@@ -96,10 +98,32 @@
             return !this.dirty
           }
         },
+        watch: {
+          valid (val, old) {
+            console.log('validate-control:watch#valid', val, old, this)
+            if (val) {
+              this.$emit('valid', this)
+            } else {
+              this.$emit('invalid')
+            }
+          },
+          dirty (val, old) {
+            console.log('validate-control:watch#dirty', val, old)
+            if (val) {
+              this.$emit('dirty')
+            } else {
+              this.$emit('pristin')
+            }
+          },
+          modified (val, old) {
+            console.log('validate-control:watch#modified', val, old)
+            this.$emit('modified')
+          }
+        },
+        // render component with the child element
         render (h) {
-          this.child.host = this
+          this.child.host = this // set this component
           console.log('validate-control#render', this.child, this._vnode)
-
           return this.child
         },
         mounted () {
@@ -136,7 +160,13 @@
         render (h, props, children) {
           console.log('validatable#render', props, children)
           const child = props.child = children[0]
-          const comp = h('validate-control', { props })
+          // setup event handler from event handlers of child
+          const on = { valid: child.data.on.valid } 
+
+          // setup validate control component
+          const comp = h('validate-control', { props, on })
+          
+          // setup dynamic computed properties
           const computed = comp.componentOptions.Ctor.options.computed || {}
           child.data.directives.forEach(dir => {
             if (dir.name === 'validate') {
@@ -145,13 +175,19 @@
               }, comp.child)
             }
           })
+
           return comp
         }
       })
 
       const vm = new Vue({
         data: {
-          msg: 'hello'
+          msg: 'hello',
+          valid: 0,
+          invalid: 0,
+          dirty: 0,
+          pristin: 0,
+          modified: 0
         },
         methods: {
           onParentInput (e) {
