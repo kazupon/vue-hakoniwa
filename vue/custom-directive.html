@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <input type="text" v-model="msg" v-validate:arg1="'hello'" v-validation:$validation1>
+      <p>{{ validation1 }}</p>
+    </div>
+
+    <script>
+      Vue.directive('validation', {
+        bind: function (el, binding, vnode) {
+          console.log('validation#bind', binding, vnode)
+        }
+      })
+
+      Vue.directive('validate', {
+        bind: function (el, binding, vnode) {
+          console.log('validate#bind', binding, vnode)
+        }
+      })
+
+      var vm = new Vue({
+        props: ['validation1'],
+        data: {
+          msg: 'hello'
+        },
+        propsData: {
+          validation1: true
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+  </body>
+</html>
