@@ -9,18 +9,87 @@
     <div id="app">
       <p>{{msg}}</p>
       <pre>{{$data}}</pre>
+      <pre>{{$validation}}</pre>
       <validatable name="field1">
-        <input @valid="valid++" type="text" v-model="msg" v-validate.input.blur="'required'">
+        <input @valid="valid = $event" type="text" v-model="msg" v-validate.input.blur="'required'">
       </validatable>
     </div>
     <script>
       const { bind } = Vue.util
 
+      function getWatcher () {
+        const vm = new Vue({ data: { a: 1 } })
+        const unwatch = vm.$watch('a', function (a) {})
+        const Watcher = vm._watchers[0].constructor
+        unwatch()
+        return Watcher
+      }
+      const Watcher = getWatcher() 
+
+      function getDep () {
+        return new Vue({ data: { a: 1 } })._data.__ob__.dep.constructor
+      }
+      const Dep = getDep()
+      const noop = function () {}
+
+      function makeComputedGetter (getter, owner) {
+        const watcher = new Watcher(owner, getter, null, { lazy: true })
+        return function computedGetter () {
+          if (watcher.dirty) { watcher.evaluate() }
+          if (Dep.target) { watcher.depend() }
+          return watcher.value
+        }
+      }
+
+      class Validation {
+        constructor (options = {}) {
+          this.name = options.name
+          this.groups = options.groups || []
+          this.classes = options.classes || {}
+
+          Vue.util.defineReactive(this, 'result', {})
+        }
+
+        set (key, val) {
+          Vue.set(this.result, key, val)
+        }
+
+        get (key) {
+          return this.result[key]
+        }
+      }
+
+      Vue.mixin({ created: validationInit })
+
+      function validationInit () {
+        console.log('call validationInit', this)
+        const options = this.$options
+        const { validation } = options
+
+        // validation instance injection
+        if (validation) {
+          this._validation = new Validation(validation)
+        } else if (options.parent && options.parent._validation) {
+          console.log('already parent instance!!')
+          this._validation = options.parent._validation
+        }
+
+        // $validation computed property injection
+        if (validation) {
+          const validationName = typeof validation === 'string' ? validation : validation.name
+          const computedDescriptor = {
+            enumerable: true,
+            configurable: true,
+            set: noop,
+            get: makeComputedGetter(function () { return this._validation.result }, this)
+          }
+          Object.defineProperty(this, `$${validationName}`, computedDescriptor)
+        }
+      }
+
       Vue.directive('validate', {
         bind (el, binding, vnode) {
           console.log('validate#bind', el, binding, vnode)
-          console.log(vnode.data.on.valid.fn.toString())
-          console.log(vnode.data.on.valid.invoker.toString())
           const { input, blur, focus } = binding.modifiers
           if (input) {
             el.addEventListener('input', vnode.host.onInput)
@@ -34,7 +103,7 @@
           if (input) {
             el.removeEventListener('input', vnode.host.onInput)
           }
-          // TODO: something listen ...
+          // TODO: something unlisten ...
           // 
         }
       })
@@ -102,7 +171,7 @@
           valid (val, old) {
             console.log('validate-control:watch#valid', val, old, this)
             if (val) {
-              this.$emit('valid', this)
+              this.$emit('valid', val)
             } else {
               this.$emit('invalid')
             }
@@ -125,6 +194,9 @@
           this.child.host = this // set this component
           console.log('validate-control#render', this.child, this._vnode)
           return this.child
+        },
+        created () {
+          this._validation.set(this.name, {})
         },
         mounted () {
           this._value = this.$el.value
@@ -167,6 +239,7 @@
           const comp = h('validate-control', { props, on })
           
           // setup dynamic computed properties
+          // TODO: should be fixed duplicated definition
           const computed = comp.componentOptions.Ctor.options.computed || {}
           child.data.directives.forEach(dir => {
             if (dir.name === 'validate') {
@@ -188,6 +261,11 @@
           dirty: 0,
           pristin: 0,
           modified: 0
+        },
+        validation: {
+          name: 'validation',
+          groups: [],
+          classes: {}
         },
         methods: {
           onParentInput (e) {
