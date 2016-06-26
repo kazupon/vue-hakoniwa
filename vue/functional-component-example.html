@@ -15,7 +15,7 @@
       </validatable>
     </div>
     <script>
-      const { bind, isPlainObject, noop } = Vue.util
+      const { bind, isPlainObject, noop, extend, resolveAsset } = Vue.util
 
       function getWatcher () {
         const vm = new Vue({ data: { a: 1 } })
@@ -37,6 +37,60 @@
           if (watcher.dirty) { watcher.evaluate() }
           if (Dep.target) { watcher.depend() }
           return watcher.value
+        }
+      }
+
+      function required (val) {
+        if (Array.isArray(val)) {
+          if (val.length !== 0) {
+            let valid = true
+            for (let i = 0, l = val.length; i < l; i++) {
+              valid = required(val[i])
+              if (!valid) {
+                break
+              }
+            }
+            return valid
+          } else {
+            return false
+          }
+        } else if (typeof val === 'number' || typeof val === 'function') {
+          return true
+        } else if (typeof val === 'boolean') {
+          return val
+        } else if (typeof val === 'string') {
+          return val.length > 0
+        } else if (val !== null && typeof val === 'object') {
+          return Object.keys(val).length > 0
+        } else if (val === null || val === undefined) {
+          return false
+        }
+      }
+
+      const validators = { required }
+      const assets = Object.create(null)
+      extend(assets, validators)
+      Vue.options.validators = assets
+
+      const strats = Vue.config.optionMergeStrategies
+      if (strats) {
+        strats.validators = (parent, child) => {
+          if (!child) { return parent }
+          if (!parent) { return child }
+          const ret = Object.create(null)
+          extend(ret, parent)
+          for (let key in child) {
+            ret[key] = child[key]
+          }
+          return ret
+        }
+      }
+
+      Vue.validator = (id, definition) => {
+        if (!definition) {
+          return Vue.options['validators'][id]
+        } else {
+          Vue.options['validators'][id] = definition
         }
       }
 
@@ -211,10 +265,14 @@
             }
             this.modified = this._value !== value
 
-            // TODO: should be validated here...
-            if (value.length === 0) {
-              this.results.push({ name: 'required', value: false })
-            }
+            // TODO: should be implmented async validation
+            this.validators.forEach(name => {
+              const validator = resolveAsset(this.$options, 'validators', name)
+              const result = validator(value)
+              if (!result) {
+                this.results.push({ name: name, value: false })
+              }
+            })
 
             e.vm = this
             this.$emit('input', e)
@@ -247,13 +305,6 @@
           // setup event handler from event handlers of child
           const on = { valid: child.data.on.valid } 
           let validators = props.validators
-
-          // setup validate control component
-          const comp = h('validate-control', { props, on })
-          
-          // setup dynamic computed properties
-          // TODO: should be fixed duplicated definition
-          const computed = comp.componentOptions.Ctor.options.computed || {}
           if (typeof validators === 'string') {
             validators = [validators]
           } else if (Array.isArray(props.validators)) {
@@ -261,6 +312,14 @@
           } else if (Vue.util.isPlainObject(props.validators)) {
             validators = Object.keys(props.validators)
           }
+          props.validators = validators
+
+          // setup validate control component
+          const comp = h('validate-control', { props, on })
+          
+          // setup dynamic computed properties
+          // TODO: should be fixed duplicated definition
+          const computed = comp.componentOptions.Ctor.options.computed || {}
           validators.forEach(validator => {
             computed[validator] = bind(() => {
               return bind(getValidatorResult, comp.child)(validator)
