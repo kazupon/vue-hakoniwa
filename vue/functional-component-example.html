@@ -10,12 +10,12 @@
       <p>{{msg}}</p>
       <pre>{{$data}}</pre>
       <pre>{{$validation}}</pre>
-      <validatable name="field1">
-        <input @valid="valid = $event" type="text" v-model="msg" v-validate.input.blur="'required'">
+      <validatable field="field1" validators="required">
+        <input @valid="valid = $event" @focus="onFocus" type="text" v-model="msg">
       </validatable>
     </div>
     <script>
-      const { bind } = Vue.util
+      const { bind, isPlainObject, noop } = Vue.util
 
       function getWatcher () {
         const vm = new Vue({ data: { a: 1 } })
@@ -30,7 +30,6 @@
         return new Vue({ data: { a: 1 } })._data.__ob__.dep.constructor
       }
       const Dep = getDep()
-      const noop = function () {}
 
       function makeComputedGetter (getter, owner) {
         const watcher = new Watcher(owner, getter, null, { lazy: true })
@@ -87,42 +86,21 @@
         }
       }
 
-      Vue.directive('validate', {
-        bind (el, binding, vnode) {
-          console.log('validate#bind', el, binding, vnode)
-          const { input, blur, focus } = binding.modifiers
-          if (input) {
-            el.addEventListener('input', vnode.host.onInput)
-          }
-          // TODO: something listen ...
-          // 
-        },
-        unbind (el, binding, vnode, oldVNode) {
-          console.log('validate#unbind', el, binding, vnode, oldVNode)
-          const { input, blur, focus } = binding.modifiers
-          if (input) {
-            el.removeEventListener('input', vnode.host.onInput)
-          }
-          // TODO: something unlisten ...
-          // 
-        }
-      })
-
       function getValidatorResult (name) {
         let ret = null
-        if (this.validators.length === 0) { return false }
+        if (this.results.length === 0) { return false }
         ret = false
-        for (let i = 0; i < this.validators.length; i++) {
-          const validator = this.validators[i]
-          if (validator.name !== name) {
+        for (let i = 0; i < this.results.length; i++) {
+          const result = this.results[i]
+          if (result.name !== name) {
             continue
           } else {
-            if (typeof validator.value === 'boolean' && !validator.value) {
+            if (typeof result.value === 'boolean' && !result.value) {
               ret = true
               break
             }
-            if (typeof validator.value === 'string' && !validator.value) {
-              ret = validator.value
+            if (typeof result.value === 'string' && !result.value) {
+              ret = result.value
               break
             }
           }
@@ -132,12 +110,27 @@
 
       Vue.component('validate-control', {
         props: {
-          name: String,
+          field: {
+            type: String,
+            required: true
+          },
+          groups: {
+            type: [String, Array],
+            default: null
+          },
+          auto: {
+            type: Boolean,
+            default: true
+          },
+          validators: {
+            type: [String, Array, Object],
+            required: true
+          },
           child: Object
         },
         data () {
           return {
-            validators: [],
+            results: [],
             dirty: false,
             modified: false
           }
@@ -145,15 +138,15 @@
         computed: {
           valid () {
             let ret = null;
-            if (this.validators.length === 0) { return true }
+            if (this.results.length === 0) { return true }
             ret = true
-            for (let i = 0; i < this.validators.length; i++) {
-              const validator = this.validators[i]
-              if (typeof validator.value === 'boolean' && !validator.value) {
+            for (let i = 0; i < this.results.length; i++) {
+              const result = this.results[i]
+              if (typeof result.value === 'boolean' && !result.value) {
                 ret = false
                 break
               }
-              if (typeof validator.value === 'string' && validator.value) {
+              if (typeof result.value === 'string' && result.value) {
                 ret = false
                 break
               }
@@ -195,19 +188,22 @@
           console.log('validate-control#render', this.child, this._vnode)
           return this.child
         },
-        created () {
-          this._validation.set(this.name, {})
-        },
         mounted () {
           this._value = this.$el.value
+          this.$el.vm = this
+          // TODO: must be keep the event handler, so need to destroy from DOM
+          this.auto && this.$el.addEventListener('input', this.onInput)
           console.log('validate-control#mounted', this._value)
         },
         updated () {
           console.log('validate-control#updated', this._value)
         },
+        destroyed () {
+          this.auto && this.$el.removeEventListener('input', this.onInput)
+        },
         methods: {
           onInput (e) {
-            this.validators = []
+            this.results = []
 
             const value = e.target.value
             if (!this.dirty && this._value !== value) {
@@ -217,7 +213,7 @@
 
             // TODO: should be validated here...
             if (value.length === 0) {
-              this.validators.push({ name: 'required', value: false })
+              this.results.push({ name: 'required', value: false })
             }
 
             e.vm = this
@@ -228,12 +224,29 @@
 
       Vue.component('validatable', {
         functional: true,
-        props: ['name'],
+        props: {
+          field: {
+            type: String, required: true
+          },
+          groups: {
+            type: [String, Array],
+            default: null
+          },
+          auto: {
+            type: Boolean,
+            default: true
+          },
+          validators: {
+            type: [String, Array, Object],
+            required: true
+          }
+        },
         render (h, props, children) {
           console.log('validatable#render', props, children)
           const child = props.child = children[0]
           // setup event handler from event handlers of child
           const on = { valid: child.data.on.valid } 
+          let validators = props.validators
 
           // setup validate control component
           const comp = h('validate-control', { props, on })
@@ -241,12 +254,17 @@
           // setup dynamic computed properties
           // TODO: should be fixed duplicated definition
           const computed = comp.componentOptions.Ctor.options.computed || {}
-          child.data.directives.forEach(dir => {
-            if (dir.name === 'validate') {
-              computed[dir.value] = bind(() => {
-                return bind(getValidatorResult, comp.child)(dir.value)
-              }, comp.child)
-            }
+          if (typeof validators === 'string') {
+            validators = [validators]
+          } else if (Array.isArray(props.validators)) {
+            validators = props.validators
+          } else if (Vue.util.isPlainObject(props.validators)) {
+            validators = Object.keys(props.validators)
+          }
+          validators.forEach(validator => {
+            computed[validator] = bind(() => {
+              return bind(getValidatorResult, comp.child)(validator)
+            }, comp.child)
           })
 
           return comp
@@ -270,6 +288,9 @@
         methods: {
           onParentInput (e) {
             console.log('onParentInput', e)
+          },
+          onFocus (e) {
+            console.log('onFocus', e)
           }
         }
       }).$mount('#app')
