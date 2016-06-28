@@ -4,18 +4,37 @@
     <meta charset="utf-8">
     <title></title>
     <script src="../node_modules/vue/dist/vue.js"></script>
+    <style>
+      .errors { color: red; }
+    </style>
   </head>
   <body>
     <div id="app">
-      <p>{{msg}}</p>
-      <pre>{{$data}}</pre>
-      <pre>{{$validation}}</pre>
-      <validatable field="field1" validators="required">
-        <input @valid="valid = $event" @focus="onFocus" type="text" v-model="msg">
-      </validatable>
+      <form novalidate>
+        <div class="username-field">
+          <label for="username">username:</label>
+          <validatable field="username" :groups="['group1']" validators="required">
+            <input id="username" type="text" v-model="username">
+          </validatable>
+        </div>
+        <div class="comment-field">
+          <label for="comment">comment:</label>
+          <validatable field="comment" :groups="['group2']" validators="required">
+            <input id="comment" type="text" v-model="comment">
+          </validatable>
+        </div>
+        <div class="errors">
+          <!--
+          <p v-if="$validation.username.required">Required your name.</p>
+          <p v-if="$validation.comment.required">Required comment.</p>
+          -->
+        </div>
+        <pre>{{$data}}</pre>
+        <pre>{{$validation}}</pre>
+      </form>
     </div>
     <script>
-      const { bind, isPlainObject, noop, extend, resolveAsset } = Vue.util
+      const { bind, _Set, toObject, isPlainObject, noop, extend, resolveAsset, hasOwn } = Vue.util
 
       function getWatcher () {
         const vm = new Vue({ data: { a: 1 } })
@@ -99,6 +118,7 @@
           this.name = options.name
           this.groups = options.groups || []
           this.classes = options.classes || {}
+          this.groups = new _Set()
 
           Vue.util.defineReactive(this, 'result', {})
         }
@@ -110,7 +130,47 @@
         get (key) {
           return this.result[key]
         }
+
+        addGroup (name, validate) {
+          const group = this.groups[name] = this.groups[name] || []
+          group.push(validate)
+        }
+
+        _walkGroupValidResult (name) {
+          const group = this.groups[name]
+          let ret = true
+          for (let i = 0; i < group.length; i++) {
+            const validate = group[i]
+            if (validate['valid'] === false) {
+              ret = false
+              break
+            }
+          }
+          return ret
+        }
+
+        _walkGroupInValidResult (name) {
+          const group = this.groups[name]
+          let ret = false
+          for (let i = 0; i < group.length; i++) {
+            const validate = group[i]
+            if (validate['invalid'] === true) {
+              ret = true
+              break
+            }
+          }
+          return ret
+        }
+
+        updateGroupResult (name) {
+          const result = {
+            valid: this._walkGroupValidResult(name),
+            invalid: this._walkGroupInValidResult(name)
+          }
+          this.set(name, result)
+        }
       }
+
 
       Vue.mixin({ created: validationInit })
 
@@ -212,6 +272,20 @@
           },
           pristin () {
             return !this.dirty
+          },
+          result () {
+            const ret = {
+              valid: this.valid,
+              invalid: this.invalid,
+              dirty: this.dirty,
+              pristin: this.pristin,
+              modified: this.modified
+            }
+            this.validators.forEach(validator => {
+              ret[validator] = this[validator]
+            })
+            console.log('resultteste', ret)
+            return ret
           }
         },
         watch: {
@@ -242,7 +316,17 @@
           console.log('validate-control#render', this.child, this._vnode)
           return this.child
         },
+        created () {
+          console.log('validate-control#created', this)
+        },
         mounted () {
+          this._validation.set(this.field, this.result)
+          if (this.groups) {
+            this.groups.forEach(group => {
+              this._validation.addGroup(group, this)
+              this._validation.updateGroupResult(group)
+            })
+          }
           this._value = this.$el.value
           this.$el.vm = this
           // TODO: must be keep the event handler, so need to destroy from DOM
@@ -256,26 +340,36 @@
           this.auto && this.$el.removeEventListener('input', this.onInput)
         },
         methods: {
-          onInput (e) {
+          $validate (value, cb) {
             this.results = []
+            // TODO: should be implmented async validation
+            this.validators.forEach(name => {
+              const validator = resolveAsset(this.$options, 'validators', name)
+              const result = validator(value)
+              this.results.push({ name: name, value: result })
+            })
 
+            this._validation.set(this.field, this.result)
+            if (this.groups) {
+              this.groups.forEach(group => {
+                this._validation.updateGroupResult(group)
+              })
+            }
+            cb && cb(this.result)
+          },
+          onInput (e) {
             const value = e.target.value
             if (!this.dirty && this._value !== value) {
               this.dirty = true
             }
             this.modified = this._value !== value
 
-            // TODO: should be implmented async validation
-            this.validators.forEach(name => {
-              const validator = resolveAsset(this.$options, 'validators', name)
-              const result = validator(value)
-              if (!result) {
-                this.results.push({ name: name, value: false })
-              }
-            })
-
             e.vm = this
-            this.$emit('input', e)
+
+            this.$validate(value, (result) => {
+              console.log('$validate result', result)
+              this.$emit('input', e)
+            })
           }
         }
       })
@@ -303,7 +397,7 @@
           console.log('validatable#render', props, children)
           const child = props.child = children[0]
           // setup event handler from event handlers of child
-          const on = { valid: child.data.on.valid } 
+          //const on = { valid: child.data.on.valid } 
           let validators = props.validators
           if (typeof validators === 'string') {
             validators = [validators]
@@ -315,24 +409,28 @@
           props.validators = validators
 
           // setup validate control component
-          const comp = h('validate-control', { props, on })
+          const comp = h('validate-control', { props/*, on*/ })
           
           // setup dynamic computed properties
           // TODO: should be fixed duplicated definition
           const computed = comp.componentOptions.Ctor.options.computed || {}
           validators.forEach(validator => {
-            computed[validator] = bind(() => {
-              return bind(getValidatorResult, comp.child)(validator)
-            }, comp.child)
+            if (!computed[validator]) { 
+              computed[validator] = bind(() => {
+                return bind(getValidatorResult, comp.child)(validator)
+              }, comp.child)
+            }
           })
 
+          console.log('validatable#render return:', comp.child)
           return comp
         }
       })
 
       const vm = new Vue({
         data: {
-          msg: 'hello',
+          username: '',
+          comment: '',
           valid: 0,
           invalid: 0,
           dirty: 0,
