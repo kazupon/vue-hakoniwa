@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>computed: {{normal}}</p>
+      <p>monadable computed: {{monad('foo')}}</p>
+    </div>
+    <script>
+      const vm = new Vue({
+        data: {
+          count: 0
+        },
+        computed: {
+          normal () {
+            console.log('call normal')
+            return 'normal computed'
+          },
+          monad () {
+            console.log('call monad')
+            return val => {
+              console.log('call closure', this.count)
+              return `monad computed (${this.count}) ${val}`
+            }
+          }
+        }
+      }).$mount('#app')
+      setInterval(() => {
+        vm.count++
+      }, 1000)
+    </script>
+  </body>
+  </body>
+</html>
