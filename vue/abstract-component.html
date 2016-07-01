@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>{{msg}}</p>
+      <comp msg="'hello comp'"></comp>
+      <abstract></abstract>
+    </div>
+    <script>
+      const abstract = {
+        _abstract: true,
+        props: {
+          child: Object,
+          msg: String,
+        },
+        created () {
+          this.msg = 'hello abstract'
+          console.log('abstract#created')
+        },
+        render (h) {
+          console.log('abstract render', this)
+          this._vnode = h('div', {}, [msg])
+          return h('div', {}, [msg])
+        }
+      }
+      const vm = new Vue({
+        data: { msg: 'hello world' },
+        components: {
+          abstract,
+          comp: {
+            template: '<p>{{msg}}</p>',
+            props: ['msg']
+          }
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+  </body>
+</html>
