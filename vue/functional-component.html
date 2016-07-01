@@ -7,36 +7,92 @@
   </head>
   <body>
     <div id="app">
-      <func-comp :msg="test"> msg<foo v-valid="'ff'"></foo></func-comp>
-      <input type="text" v-model="test">
+      <p>{{foo}}</p>
+      <validation name="validation1">
+        <validate @valid="onInput" :handler="onInput" field="filed1" validators="required">
+          <input type="text" v-model="foo">
+        </validate>
+        <p>{{bar}}</p>
+        <validate :handler="onInput" field="filed2" validators="required">
+          <input type="text" v-model="bar">
+        </validate>
+      </validation>
+      <comp @valid="onInput" field="field3"></comp>
     </div>
     <script>
-      var vm = new Vue({
+      Vue.component('validation', {
+        functional: true,
+        props: ['name'],
+        render (h, props, children) {
+          console.log('validation#render', props, children)
+          return children
+        }
+      })
+
+      Vue.component('validate', {
+        functional: true,
+        props: ['handler', 'field', 'validators'],
+        render (h, props, children) {
+          console.log('validate#render', props, children)
+          const child = props.child = children[0]
+          const comp = h('validate-control', { props })
+          return comp
+        }
+      })
+
+      Vue.component('comp', {
+        template: '<div>comp:<input type="text" v-model="field"></div>',
+        props: ['field'],
+        mounted () {
+          setTimeout(() => {
+            this.$emit('valid', this)
+          }, 2000)
+        }
+      })
+
+      Vue.component('validate-control', {
+        props: ['handler', 'field', 'child'],
+        created () {
+          console.log(`validate-control-${this._uid}#created`, this)
+        },
+        mounted () {
+          console.log(`validate-control-${this._uid}#mounted`, this)
+          this.$el.vm = this
+          this.$el.addEventListener('input', this.handler)
+          setTimeout(() => {
+            this.$emit('valid', this)
+          }, 3000)
+        },
+        updated () {
+          console.log(`validate-control-${this._uid}#updated`, this)
+        },
+        render (h) {
+          console.log(`validate-control-${this._uid}#render`, this)
+          this.child.host = this
+          return this.child
+        }
+      })
+
+      const vm = new Vue({
         data: {
-          test: 'hello'
+          foo: 'foo',
+          bar: 'bar'
         },
-        directives: {
-          valid: {
-            bind: function (el, binding, vnode) {
-              console.log('valid#bind', el, binding, vnode)
-            }
-          }
+        created () {
+          console.log(`root-${this._uid}#created`, this)
         },
-        components: {
-          foo: {
-            template: '<div class="foo"><p>foo</p></div>'
-          },
-          funcComp: {
-            functional: true,
-            props: ['msg'],
-            render: function (h, props, children) {
-              console.log('funcComp#render', this, h, props, children)
-              return h('div', null, [' ', props.msg].concat(children))
-            }
+        mounted () {
+          console.log(`root-${this._uid}#mounted`, this)
+        },
+        updated () {
+          console.log(`root-${this._uid}#updated`, this)
+        },
+        methods: {
+          onInput (e) {
+            console.log(`vm${this._uid}#onInput`, e)
           }
         }
       }).$mount('#app')
-      console.log(vm)
     </script>
   </body>
   </body>
