@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+    </div>
+    <script>
+      console.log(Vue.util)
+      const _render = Vue.prototype._render
+      Vue.prototype._render = function (...args) {
+        console.log(`vm${this._uid}#_render ...`)
+        const vnode = _render.call(this, ...args)
+        console.log(`... vm${this._uid}#_render`)
+        return vnode
+      }
+
+      /*
+       * helper for compilers
+       */
+
+      function getAndRemoveAttr (el, name) {
+        let val
+        if ((val = el.attrsMap[name]) !== null) {
+          const list = el.attrsList
+          for (let i = 0, l = list.length; i < l; i++) {
+            if (list[i].name === name) {
+              list.splice(i, 1)
+              break
+            }
+          }
+        }
+        return val
+      }
+
+      function getBindingAttr (el, name, getStatic) {
+        const dynamicValue =
+          getAndRemoveAttr(el, ':' + name) ||
+          getAndRemoveAttr(el, 'v-bind:' + name)
+        if (dynamicValue != null) {
+          return dynamicValue
+        } else if (getStatic !== false) {
+          const staticValue = getAndRemoveAttr(el, name)
+          if (staticValue != null) {
+            return JSON.stringify(staticValue)
+          }
+        }
+      }
+
+      function addProp (el, name, value) {
+        (el.props || (el.props = [])).push({ name, value })
+      }
+
+      /*
+       * handlers for parser
+       */
+
+      function transformNode (el) {
+        console.log('module#transformNode', el)
+        if (el.tag === 'validatable') {
+          el.validation = {
+            field: el.attrsMap.field,
+            validator: el.attrsMap.validator
+          }
+        }
+      }
+
+      /*
+       * handlers for codegen
+       */
+
+      function validate (el, dir) { // directive
+        console.log('directive#validate', el, dir)
+        if (dir.value) {
+          addProp(el, 'validate', dir.value)
+        }
+        return true
+      }
+
+      function genData (el) { // module
+        console.log('module#genData', el)
+        return el.validation
+          ? `validation:${JSON.stringify(el.validation)},`
+          : ''
+      }
+
+      function transformCode (el, code) { // module
+        console.log('module#transformCode', el, code)
+        if (!el.parent) {
+          const validation = { valid: null, invalid: null }
+          for (let i = 0; i < el.children.length; i++) {
+            const element = el.children[i]
+            if (element.tag === 'validatable' && element.validation) {
+              const { field, validator } = element.validation
+              if (field) {
+                validation[field] = { valid: null, invalid: null }
+                validation[field][validator] = null
+              }
+            }
+          }
+          //const ret = `_h('validation',{props:{validation:${
+          //              JSON.stringify(validation)
+          //            },child:${code}}})`
+          //console.log('validation:', ret)
+          //console.log('code:', code)
+          //return ret
+          return code
+        } else {
+          return code
+        } 
+      }
+
+      Vue.component('validate-control', {
+        props: ['field', 'groups', 'validators', 'auto', 'child'],
+        render (h) {
+          this.child.host = this
+          return this.child
+        }
+      })
+      
+      Vue.component('validatable', {
+        functional: true,
+        props: ['field', 'groups', 'validators', 'auto'],
+        render (h, props, children) {
+          console.log('validatable#render', props, children)
+          props.child = children[0]
+          const vnode = h('validate-control', { props })
+          return vnode
+        }
+      })
+
+      Vue.component('validation', {
+        props: ['validation', 'child'],
+        render (h, props, children) {
+          const oldVNode = this._vnode
+          const newVNode = this.child
+          console.log('validation#render', this.child, this._vnode, props, children)
+          return newVNode
+          //return children
+        },
+        created () {
+          console.log(`vm${this._uid}#created`)
+        },
+        beforeMount () {
+          console.log(`vm${this._uid}#beforeMounted`)
+        },
+        mounted () {
+          console.log(`vm${this._uid}#mounted`)
+        },
+        destroyed () {
+          console.log(`vm${this._uid}#destroyed`)
+        }
+      })
+
+      const components = {
+        comp: {
+          template: '<div class="comp">{{foo}}</div>',
+          props: ['foo'],
+          created () {
+            console.log(`vm${this._uid}#created`)
+          },
+          beforeMount () {
+            console.log(`vm${this._uid}#beforeMounted`)
+          },
+          mounted () {
+            console.log(`vm${this._uid}#mounted`)
+          },
+          destroyed () {
+            console.log(`vm${this._uid}#destroyed`)
+          }
+        }
+      }
+      const { render, staticRenderFns } = Vue.compile(`<div class="app">
+          <p>{{name}}:{{username}}</p>
+          <validatable field="field1" validator="required">
+            <input type="text" v-model="username">
+          </validatable>
+          <validatable field="field2" validator="required">
+            <input type="password" v-model="password">
+          </validatable>
+          <comp :foo="username"></comp>
+      </div>`, {
+        //directives: { validate }, 
+        modules: [{ transformNode: transformNode, genData: genData, transformCode: transformCode }]
+      })
+      console.log('render', render.toString())
+      console.log('staticRenderFns', staticRenderFns.toString())
+
+      const vm = new Vue({
+        data: {
+          name: 'App Name', 
+          username: 'hello',
+          password: 'world',
+        },
+        validation: {
+          name: 'validation1'
+        },
+        created () {
+          console.log(`vm${this._uid}#created`)
+        },
+        beforeMount () {
+          console.log(`vm${this._uid}#beforeMounted`)
+        },
+        mounted () {
+          console.log(`vm${this._uid}#mounted`, this.$options.render.toString())
+        },
+        destroyed () {
+          console.log(`vm${this._uid}#destroyed`)
+        },
+        components,
+        render,
+        staticRenderFns
+      }).$mount('#app')
+    </script>
+  </body>
+  </body>
+</html>
