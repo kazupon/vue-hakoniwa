@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>{{ msg }}</p>
+      <input type="checkbox" v-model="show">
+      <validate v-model="msg">
+        <input v-if="show" type="text" value="he" v-validate:field1="'fss'">
+      </validate>
+    </div>
+    <script>
+      var vm = new Vue({
+        data: {
+          show: true,
+          msg: 'hello'
+        },
+        directives: {
+          validate: {
+            bind: function (el, binding, vnode) {
+              console.log('dir validate#bind', el, binding, vnode)
+            }
+          }
+        },
+        components: {
+          validate: {
+            template: '<div class="validate"><slot></slot></div>',
+            props: ['value'],
+            mounted: function () {
+              this.$el.addEventListener('input', this.onInput)
+            },
+            destroyed: function () {
+              this.$el.removeEventListener('input', this.onInput)
+            },
+            beforeUpdate: function () {
+              this.$el.removeEventListener('input', this.onInput)
+            },
+            updated: function () {
+              this.$el.addEventListener('input', this.onInput)
+            },
+            methods: {
+              onInput: function (e) {
+                this.$emit('input', e)
+              }
+            }
+          }
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+  </body>
+</html>
