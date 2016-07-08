@@ -12,18 +12,18 @@
     <div id="app">
       <form novalidate>
         <validation name="validation1">
-        <div class="username-field">
-          <label for="username">username:</label>
-          <validatable field="username" :groups="['group1']" :validators="{ required: true, minlength: 3 }">
-            <input id="username" @focus="onFocus" type="text" v-model="username">
-          </validatable>
-        </div>
-        <div class="comment-field">
-          <label for="comment">comment:</label>
-          <validatable field="comment" :groups="['group2']" :validators="{ required: true, maxlength: 8 }">
-            <input id="comment" type="text" v-model="comment">
-          </validatable>
-        </div>
+          <div class="username-field">
+            <label for="username">username:</label>
+            <validatable field="username" :groups="['group1']" :validators="{ required: true, minlength: 3 }">
+              <input id="username" @focus="onFocus" type="text" v-model="username">
+            </validatable>
+          </div>
+          <div class="comment-field">
+            <label for="comment">comment:</label>
+            <validatable field="comment" :groups="['group2']" :validators="{ required: true, maxlength: 8 }">
+              <input id="comment" type="text" v-model="comment">
+            </validatable>
+          </div>
         </validation>
         <pre>{{username}}</pre>
         <div class="errors">
@@ -428,9 +428,9 @@
             required: true
           }
         },
-        render (h, props, children, data) {
-          console.log('validatable#render', props, children, data)
-          const child = props.child = children[0]
+        render (h, { props, children, data }) {
+          console.log('validatable#render', props, children(), data)
+          const child = props.child = children()[0]
           const { on } = child.data
           console.log('on', on)
           // setup event handler from event handlers of child
@@ -507,9 +507,9 @@
       Vue.component('validation', {
         functional: true,
         props: ['name', 'classes', 'groups', 'tag'],
-        render (h, props, children, data) {
-          console.log('validation#render', props, children, data)
-          props.children = children
+        render (h, { props, children, data }) {
+          console.log('validation#render', props, children(), data)
+          props.children = children()
           const comp = h('validation-control', { props })
           return comp
         }
