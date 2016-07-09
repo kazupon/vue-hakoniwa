@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <validate field="radio">
+        <input name="group1" type="radio" value="one">
+        <input name="group1" type="radio" value="two">
+      </validate>
+    </div>
+    <script>
+      Vue.component('validate-radio', {
+        props: ['name', 'child'],
+        render () {
+          console.log('validate-radio#render', this.child)
+          return this.child
+        }
+      })
+      Vue.component('validate', {
+        functional: true,
+        props: ['filed'],
+        render (h, props, children) {
+          console.log('multiple#render', props, children)
+          const radio = []
+          for (let i = 0; i < children.length; i++) {
+            if (!children[i].tag) { continue }
+            radio.push(h('validate-radio', { props: { child: children[i] } }))
+          }
+          console.log(radio)
+          return radio
+        }
+      })
+
+      const vm = new Vue({
+        data: {
+          foo: 'foo',
+          bar: 'bar'
+        },
+      }).$mount('#app')
+    </script>
+  </body>
+  </body>
+</html>
