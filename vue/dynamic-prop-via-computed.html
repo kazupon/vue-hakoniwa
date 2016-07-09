@@ -13,6 +13,7 @@
       <a href="javascript:void(0)" @click="onAdd">add</a>
       <a href="javascript:void(0)" @click="onRemove">remove</a>
       <pre>validation: {{ validation }}</pre>
+      <p v-for="(value, key) in validation">added dynamic property: prop:{{key}}, value:{{value}}</p>
     </div>
     <script>
       var store = {}

@@ -48,14 +48,15 @@
           funcComp: {
             functional: true,
             props: ['msg'],
-            render: function (h, props, children) {
-              console.log('funcComp#render', this, h, props, children)
-              if (children.length === 3) {
-                const comp = children[2]
+            render: function (h, { props, children }) {
+              var childs = children()
+              console.log('funcComp#render', this, h, props, childs)
+              if (childs.length === 3) {
+                const comp = childs[2]
                 console.log(comp.child, comp.componentOptions.Ctor.options)
                 comp.componentOptions.Ctor.options.computed['c2'] = function () { return 2 }
               }
-              return h('div', null, [' ', props.msg].concat(children))
+              return h('div', null, [' ', props.msg].concat(childs))
             }
           }
         },

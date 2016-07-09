@@ -23,12 +23,13 @@
       Vue.component('validate', {
         functional: true,
         props: ['filed'],
-        render (h, props, children) {
-          console.log('multiple#render', props, children)
+        render (h, { props, children }) {
+          const childs = children()
+          console.log('multiple#render', props, childs)
           const radio = []
-          for (let i = 0; i < children.length; i++) {
+          for (let i = 0; i < childs.length; i++) {
             if (!children[i].tag) { continue }
-            radio.push(h('validate-radio', { props: { child: children[i] } }))
+            radio.push(h('validate-radio', { props: { child: childs[i] } }))
           }
           console.log(radio)
           return radio

@@ -9,41 +9,52 @@
     <div id="app">
       <p>{{ msg }}</p>
       <input type="checkbox" v-model="show">
-      <validate v-model="msg">
+      <validate v-model="msg" @change="onChange">
         <input v-if="show" type="text" value="he" v-validate:field1="'fss'">
       </validate>
     </div>
     <script>
-      var vm = new Vue({
+      const _render = Vue.prototype._render
+      Vue.prototype._render = function () {
+        const vnode = _render.call(this, arguments)
+        console.log('_render', this._uid, vnode, this.$options.render.toString())
+        return vnode
+      }
+      const vm = new Vue({
         data: {
           show: true,
           msg: 'hello'
         },
         directives: {
           validate: {
-            bind: function (el, binding, vnode) {
+            bind (el, binding, vnode) {
               console.log('dir validate#bind', el, binding, vnode)
             }
+          }
+        },
+        methods: {
+          onChange (e) {
           }
         },
         components: {
           validate: {
             template: '<div class="validate"><slot></slot></div>',
             props: ['value'],
-            mounted: function () {
+            mounted () {
               this.$el.addEventListener('input', this.onInput)
+              console.log('mounted', this._uid)
             },
-            destroyed: function () {
+            destroyed () {
               this.$el.removeEventListener('input', this.onInput)
             },
-            beforeUpdate: function () {
+            beforeUpdate () {
               this.$el.removeEventListener('input', this.onInput)
             },
-            updated: function () {
+            updated () {
               this.$el.addEventListener('input', this.onInput)
             },
             methods: {
-              onInput: function (e) {
+              onInput (e) {
                 this.$emit('input', e)
               }
             }
