@@ -119,11 +119,26 @@ function getValidatorResult (validator, results) {
   return ret
 }
 
-const baseProps = ['field', 'groups', 'validators', 'auto']
+const baseProps = {
+  field: {
+    type: String, required: true
+  },
+  groups: {
+    type: [String, Array],
+    default: null
+  },
+  auto: {
+    type: Boolean,
+    default: true
+  },
+  validators: {
+    type: [String, Array, Object],
+    required: true
+  }
+}
 
 const validateControl = {
   name: 'validate-control',
-  props: baseProps.concat(['child', 'value']),
   data () {
     return {
       results: [],
@@ -229,7 +244,7 @@ const validateControl = {
         const result = fn(value, arg)
         this.results.push({ name: name, value: result })
       })
-      this._fireEvent('input', result)
+      this._fireEvent('input', this.result)
       cb && cb(this.result)
     },
     _updateTouched (e) {
@@ -404,6 +419,15 @@ function defineValidatorControl (field, target, props) {
   const validateControl = extend({}, target)
   validateControl.computed = computed
   validateControl.methods = methods
+
+  const validateControlProps = {}
+  extend(validateControlProps, baseProps)
+  extend(validateControlProps, {
+    child: { type: Object },
+    value: { type: Object }
+  })
+  validateControl.props = validateControlProps
+
   validators.forEach(validator => {
     validateControl.computed[validator] = function () {
       return getValidatorResult(validator, this.results)
