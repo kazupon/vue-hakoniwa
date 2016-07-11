@@ -123,7 +123,7 @@ const baseProps = ['field', 'groups', 'validators', 'auto']
 
 const validateControl = {
   name: 'validate-control',
-  props: baseProps.concat(['child']),
+  props: baseProps.concat(['child', 'value']),
   data () {
     return {
       results: [],
@@ -229,6 +229,7 @@ const validateControl = {
         const result = fn(value, arg)
         this.results.push({ name: name, value: result })
       })
+      this._fireEvent('input', result)
       cb && cb(this.result)
     },
     _updateTouched (e) {
@@ -469,7 +470,7 @@ const vm = new Vue({
   methods: {
     onValid (e) {
       console.log('onValid', e)
-      this.validation.field1 = e.result
+      //this.validation.field1 = e.result
     },
     onValid2 (e) {
       console.log('onValid2', e)

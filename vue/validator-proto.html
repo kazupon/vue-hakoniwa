@@ -8,11 +8,11 @@
   <body>
     <div id="app">
       <p>msg: {{msg}}</p>
-      <validate @valid="onValid" @invalid="onInvalid" @dirty="onDirty" @touched="onTouched" @modified="onModified" @focus="onFocus" field="field1" :validators="{ required: true , minlength: 4 }">
+      <validate v-model="validation.field1" @valid="onValid" @invalid="onInvalid" @dirty="onDirty" @touched="onTouched" @modified="onModified" @focus="onFocus" field="field1" :validators="{ required: true , minlength: 4 }">
         <input type="text" v-model="msg">
       </validate>
       <p>selected: {{selected}}</p>
-      <validate @valid="onValid2" @focus="onFocus" field="field2" :validators="{ required: true }">
+      <validate v-model="validation.field2" @valid="onValid2" @focus="onFocus" field="field2" :validators="{ required: true }">
         <my-comp :options="options" v-model="selected"></my-comp>
       </validate>
       <pre>field1 validation: {{validation.field1}}</pre>
