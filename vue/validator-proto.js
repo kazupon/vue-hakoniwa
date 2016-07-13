@@ -187,24 +187,26 @@ const validateControl = {
       this._validators.forEach(validator => {
         ret[validator] = this[validator]
       })
-      console.log('result computed', ret)
       return ret
     }
   },
   render (h) {
-    console.log(`${this.$vnode.tag}#render`, this, this.child, this._vnode)
-    //const sources = this.getEventSources(this.child)
-    //const events = Object.keys(sources)
-    //events.forEach(event => {
-    //  let source = sources[event]
-    //  const wrapped = (e) => {
-    //    if (e.target) {
-    //      e.$validity = this
-    //    }
-    //    source.call(this, e)
-    //  }
-    //  sources[event] = wrapped
-    //})
+    console.log(`${this.$vnode.tag}#render`, this, this.child, this._vnode, this._vnode ? this._vnode.elm : null)
+    const sources = this.getChildEventSources(this.child)
+    const events = Object.keys(sources)
+    //console.log('child events', events)
+    events.forEach(event => {
+      let source = sources[event]
+      const wrapped = (e) => {
+        if (e.target) {
+          e.$validity = this
+        }
+        //console.log(`wrapped child ${event} event at render`, e)
+        //if (event === 'input' && this.invalid) { return }
+        source.call(this, e)
+      }
+      sources[event] = wrapped
+    })
     return this.child
   },
   created () {
@@ -225,14 +227,24 @@ const validateControl = {
 
     this._listenToucheableEvent(this.$el, this.child)
     this._listenInputableEvent(this.$el, this.child)
-    //this.listen()
+
+    this._listenChildComponentEvents()
+  },
+  beforeUpdate () {
+    console.log(`${this.$vnode.tag}#beforeUpdate`, this.$vnode)
+    // TODO: should be implemented resource refleshing
   },
   updated () {
     console.log(`${this.$vnode.tag}#updated`, this.$vnode)
-    // TODO: should be implemented resource refleshing
+    // TODO: should be implemented resource setting
   },
   destroyed () {
+    console.log(`${this.$vnode.tag}#destroyed`, this.$vnode)
     // TODO: should be implemented resource releasing
+    this._unlistenChildComponentEvents()
+
+    this._unlistenToucheableEvent(this.$el, this.child)
+    this._unlistenInputableEvent(this.$el, this.child)
   },
   methods: {
     $validate (value, cb) {
@@ -303,21 +315,23 @@ const validateControl = {
       this._updateDirty(el, this.child)
       this._updateModified(el, this.child)
 
-      this.$validate(value, result => {
-        const type = result.valid ? 'valid' : 'invalid'
-        this._fireEvent(type, this)
-      })
+      if (this.auto) {
+        this.$validate(value, result => {
+          const type = result.valid ? 'valid' : 'invalid'
+          this._fireEvent(type, this)
+        })
+      }
     },
     _watchInputable (val, old) {
-      console.log('_watchInputable', val, old)
-
       this._updateDirty(this.$el, this.child)
       this._updateModified(this.$el, this.child)
 
-      this.$validate(val, result => {
-        const type = result.valid ? 'valid' : 'invalid'
-        this._fireEvent(type, this)
-      })
+      if (this.auto) {
+        this.$validate(val, result => {
+          const type = result.valid ? 'valid' : 'invalid'
+          this._fireEvent(type, this)
+        })
+      }
     },
     _getValue (el, vnode) {
       // TODO: should be extract classify
@@ -369,31 +383,45 @@ const validateControl = {
         this.$emit(type, ...args)
       })
     },
-    _listenUserEvents () {
-      const events = Object.keys(this.$vnode.componentOptions.listeners)
-      //const sources = this.getChildEventSources(this.child)
-      //console.log('monitorEvents child.events', Object.keys(sources))
-      console.log('listen $vnode.events', events)
-      this._validationEventHandlers = {}
-      events.forEach((event) => {
-        // TODO: event filers
-        if (event === 'input' || event === 'valid') { return }
-        const handler = (e) => {
-          e.$validity = this
-          this.$emit(event, e)
-        }
-        this.$el.addEventListener(event, handler)
-        this._validationEventHandlers[event] = handler
-      })
+    _listenChildComponentEvents () {
+      const child = this.child
+      const events = Object.keys(this.getChildEventSources(this.child))
+      //const events2 = Object.keys(this.$vnode.componentOptions.listeners)
+      //console.log('monitorEvents child.events', events)
+      //console.log('listen $vnode.events', events2)
+      if (child.child && child.tag.match(/vue-component/)) {
+        this._validationEventHandlers = {}
+        events.forEach(event => {
+          //console.log('event:', event, this.$vnode.componentOptions.listeners[event])
+          // TODO: event filers
+          if (event === 'input') { return }
+          const handler = (e) => {
+            e.$validity = this
+            //console.log(`wrapped child ${event} event hogehoge`, e)
+            this.$emit(event, e)
+          }
+          this.$el.addEventListener(event, handler)
+          this._validationEventHandlers[event] = handler
+        })
+      }
     },
-    _unlistenUserEvents () {
+    _unlistenChildComponentEvents () {
+      const child = this.child
+      if (child.child && child.tag.match(/vue-component/)) {
+        const events = Object.keys(this._validationEventHandlers)
+        events.forEach(event => {
+          const handler = this._validationEventHandlers[event]
+          this.$el.removeEventListener(event, handler)
+        })
+        this._validationEventHandlers = null
+      }
     },
     getChildEventSources (child) { // for v-model input event
       if (child.tag.match(/vue-component/)) {
-        console.log('getChildEventSources from componentOptions', Object.keys(child.componentOptions.listeners))
+        //console.log('getChildEventSources from componentOptions', Object.keys(child.componentOptions.listeners), Object.keys(this._events))
         return child.componentOptions.listeners
       } else {
-        console.log('getChildEventSources from data', Object.keys(child.data.on))
+        //console.log('getChildEventSources from data', Object.keys(child.data.on), Object.keys(this._events))
         return child.data.on
       }
     }
@@ -437,7 +465,7 @@ function defineValidatorControl (field, target, props) {
   return vcCaches[field] = Vue.extend(validateControl)
 }
 
-const validate = {
+Vue.component('validate',{
   functional: true,
   props: baseProps,
   render (h, { props, parent, data, children }) {
@@ -451,8 +479,32 @@ const validate = {
       return h(defineValidatorControl(props.field, validateControl, props), newData)
     })
   }
+})
+
+const validatoinControl = {
+  name: 'validation-control',
+  props: ['name', 'groups'],
+  render (h) {
+    console.log(`${this.$vnode.tag}#render`, this)
+    return this._vnode
+  }
 }
-Vue.component('validate', validate)
+
+Vue.component('validation', {
+  functional: true,
+  props: ['name', 'groups'],
+  render (h, { props, data, children }) {
+    console.log('validation#render', props, data)
+    return h(validatoinControl, data, children)
+    /*
+    const childs = children()
+    childs.forEach(child => {
+      console.log('validation#render', child.child)
+    })
+    return childs
+    */
+  }
+})
 
 // end of validate & validate-control component
 
@@ -464,6 +516,8 @@ const vm = new Vue({
   data: {
     msg: 'hello',
     selected: 'A',
+    showComponent: true,
+    enableAuto: true,
     validation: {
       field1: {},
       field2: {}
@@ -485,9 +539,14 @@ const vm = new Vue({
       },
       mounted () {
         console.log(`${this.$vnode.tag}#mounted`, this)
-        this.$el.addEventListener('change', (e) => {
+        this._handle = (e) => {
           this.$emit('input', e.target.value)
-        })
+        }
+        this.$el.addEventListener('change', this._handle)
+      },
+      destroyed () {
+        console.log(`${this.$vnode.tag}#destroyed`, this)
+        this.$el.removeEventListener('change', this._handle)
       }
     }
   },
@@ -518,13 +577,22 @@ const vm = new Vue({
     },
     onBlur (e) {
       console.log('onBlur', e)
-      this.validation.field1 = e.result
+      if (!this.enableAuto) {
+        e.$validity.$validate(e.$validity.$el.value, result => {
+          this.validation.field1 = result
+        })
+      } else {
+        this.validation.field1 = e.result
+      }
     },
     onFocus (e) {
       console.log('onFocus', e)
     },
     onMouseEnter (e) {
       console.log('onMouseEnter', e)
+    },
+    onInput (e) {
+      console.log('onInput', e)
     }
   }
 }).$mount('#app')

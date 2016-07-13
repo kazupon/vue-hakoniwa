@@ -8,12 +8,14 @@
   <body>
     <div id="app">
       <p>msg: {{msg}}</p>
-      <validate v-model="validation.field1" @valid="onValid" @invalid="onInvalid" @dirty="onDirty" @touched="onTouched" @modified="onModified" @focus="onFocus" field="field1" :validators="{ required: true , minlength: 4 }">
-        <input type="text" v-model="msg">
+      <div><input type="checkbox" v-model="showComponent">show component</div>
+      <div><input type="checkbox" v-model="enableAuto">Enable Auto validation</div>
+      <validate v-model="validation.field1" @valid="onValid" @invalid="onInvalid" @dirty="onDirty" @touched="onTouched" @modified="onModified" field="field1" :validators="{ required: true , minlength: 4 }" :auto="enableAuto">
+        <input type="text" @blur="onBlur" @focus="onFocus" v-model="msg">
       </validate>
       <p>selected: {{selected}}</p>
-      <validate v-model="validation.field2" @valid="onValid2" @focus="onFocus" field="field2" :validators="{ required: true }">
-        <my-comp :options="options" v-model="selected"></my-comp>
+      <validate v-if="showComponent" v-model="validation.field2" @valid="onValid2" field="field2" :validators="{ required: true }">
+        <my-comp :options="options" @focus="onFocus" v-model="selected"></my-comp>
       </validate>
       <pre>field1 validation: {{validation.field1}}</pre>
       <pre>field2 validation: {{validation.field2}}</pre>
