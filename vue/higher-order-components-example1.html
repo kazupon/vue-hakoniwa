@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>msg: {{msg}}</p>
+      <validation :name="'validation1'">
+      <validate field="field1" :validators="{ required: true, min: 1 }">
+        <input type="text" v-model="msg">
+      </validate>
+      <p>force break line</p>
+      <validate field="field2" :validators="{ required: true, max: 1 }">
+        <input type="text" v-model="msg">
+      </validate>
+      </validation>
+    </div>
+    <script>
+      const { extend, isPlainObject, bind } = Vue.util
+
+      const _render = Vue.prototype._render
+      Vue.prototype._render = function () {
+        console.log(`${this._uid}#_render`, this._vnode)
+        const vnode = _render.call(this)
+        console.log(`... ${this._uid}#_render`, vnode, this._vnode)
+        return vnode
+      }
+
+      const vcCaches = Object.create(null)
+      const baseValidateControl = {
+        name: 'validate-control',
+        props: ['field', 'validators', 'child'],
+        render (h) {
+          console.log(`${this.$vnode.tag}#render`, this)
+          return this.child
+        },
+        mounted () {
+          console.log(`${this.$vnode.tag}#mounted`, this)
+        },
+        updated () {
+          console.log(`${this.$vnode.tag}#updated`, this)
+        }
+      }
+
+      function defineValidateControl (field, props) {
+        if (vcCaches[field]) {
+          return vcCaches[field]
+        }
+
+        let validators = props.validators
+        if (typeof validators === 'string') {
+          validators = [validators]
+        } else if (Array.isArray(props.validators)) {
+          validators = props.validators
+        } else if (isPlainObject(props.validators)) {
+          validators = Object.keys(props.validators)
+        }
+
+        const validateControl = extend({}, baseValidateControl)
+        const computed = extend({}, baseValidateControl.computed)
+        validateControl.computed = computed
+        validators.forEach(validator => {
+          validateControl.computed[validator] = function () {
+            return validator
+          }
+        })
+        vcCaches[field] = Vue.extend(validateControl)
+
+        return vcCaches[field]
+      }
+      
+      Vue.component('validate', {
+        functional: true,
+        props: ['field', 'validators'],
+        render (h, { props, data, parent, children } ) {
+          console.log('validate#render', props, data)
+          const childs = children()
+          return childs.map(child => {
+            if (!child.tag) { return child }
+            const newData = extend({}, data)
+            newData.attrs.child = child
+            return h(defineValidateControl(props.field, props), newData)
+          })
+        }
+      })
+
+      Vue.component('validation', {
+        functional: true,
+        prosp: ['name', 'tag'],
+        /*
+        render (h) {
+          const tag = this.tag || this.$vnode.data.tag || 'form'
+          const children = this.$slots.default
+          console.log('validation#render', tag, children, this)
+          return h(tag, null, children)
+        }
+        */
+        render (h, { parent, props, data, children }) {
+          const tag = data.tag || 'div'
+          console.log('validation#render', props, data)
+          return h(tag, null, children)
+        }
+      })
+
+      const vm = new Vue({
+        data: {
+          msg: 'hello'
+        },
+        validation: {
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+</html>
