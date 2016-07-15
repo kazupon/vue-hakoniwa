@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p is="span">msg: {{msg}}</p>
+      <pre>vnode: {{rendering}}</pre>
+    </div>
+    <script>
+      const vm = new Vue({
+        data: {
+          msg: 'hello'
+        },
+        computed: {
+          rendering () {
+            return this.$options.render.toString()
+          }
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+</html>
