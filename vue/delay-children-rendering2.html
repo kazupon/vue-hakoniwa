@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+    </div>
+    <script>
+      Vue.component('func1', {
+        functional: true,
+        props: ['prop1'],
+        render (h, { data, props, children }) {
+          console.log('func1#render ...', data, props)
+          const child = h('world', { props: { msg: props.prop1 } }, () => {
+            console.log('## func1 children thunking ...')
+            const childs = children()
+            console.log('## ... func1 children tunked')
+            return childs
+          })
+          console.log('... done func1#render', child)
+          return child
+        }
+      })
+
+      Vue.component('world', {
+        props: ['msg'],
+        render (h) {
+          console.log('world#render ...', this.$slots)
+          return h('ul', null, this.$slots.default.map(child => {
+            if (child.tag) {
+              return h('li', child.data, this.msg)
+            }
+          }))
+        },
+        mounted () {
+          console.log(`${this._uid}#mounted`)
+        }
+      })
+
+      Vue.component('hello', {
+        props: ['msg'],
+        render (h) {
+          console.log('hello#render ...', this.$slots)
+          const child = h('div', null, this.$slots.default.map(child => {
+            if (!child.tag) {
+              return h('func1', { props: { prop1: 'hoge' } }, () => {
+                console.log('## hello#render func1 child rendering thunking ...')
+                const ret = []
+                for (i = 0 ; i < 4; i++) {
+                  ret.push(h('p', { class: 'child' + i }), 'func1-child-' + i)
+                }
+                console.log('## ... func1 child rendered tunked hello#render')
+                return ret
+              })
+            } else {
+              return h('p', null, () => {
+                console.log('## hello#render other child rendering thunking ...')
+                const children = [`${child.children[0].text}:${this.msg}`]
+                console.log('## ... other child rendered tunked hello#render')
+                return children
+              })
+            }
+          }))
+          console.log('... done hello#render', child)
+          return child
+        },
+        mounted () {
+          console.log(`${this._uid}#mounted`)
+        }
+      })
+
+      const vm = new Vue({
+        render (h) {
+          console.log('root#render ...')
+          const child = h(
+            Vue.options.components['hello'], {
+              attrs: {
+                msg: 'hello' 
+              }
+            },
+            () => {
+              console.log('## root#render children rendering ...')
+              const children = [
+                h('span', 'parent1'),
+                ' ',
+                h('span', 'parent2')
+              ]
+              console.log('## ... rendered children root#render', children)
+              return children
+            }
+          )
+          console.log('... done root#render', child)
+          return child
+        },
+        mounted () {
+          console.log(`${this._uid}#mounted`)
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+</html>
