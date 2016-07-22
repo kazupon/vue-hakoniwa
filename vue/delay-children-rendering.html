@@ -13,7 +13,10 @@
         props: ['msg'],
         render (h) {
           console.log('hello#render', this.$slots)
-          return h('p', [this.msg])
+          return h('div', null, this.$slots.default.map(child => {
+            if (!child.tag) { return child }
+            return h('p', null, `${child.children[0].text}:${this.msg}`)
+          }))
         }
       })
 
@@ -31,7 +34,8 @@
               console.log('children thunking')
               return [
                 h('span', 'parent1'),
-                'parent2!'
+                ' ',
+                h('span', 'parent2')
               ]
             }
           )
