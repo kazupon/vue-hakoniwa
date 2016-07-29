@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>get queue data with computed</p>
+      <pre>{{result}}</pre>
+    </div>
+    <script>
+      const vm = new Vue({
+        data: {
+          queue: []
+        },
+        computed: {
+          result () {
+            console.log('result computed ...')
+            const buf = []
+            let data = this.queue.pop()
+            while (data) {
+              buf.push(data)
+              data = this.queue.pop()
+            }
+            return buf.join(':')
+          }
+        },
+        created () {
+          let counter = 0
+          setInterval(() => {
+            counter = this.addQueue(counter)
+          }, 1000)
+        },
+        methods : {
+          addQueue (base) {
+            console.log('adding ...')
+            const max = 4
+            for (let i = 0; i < max; i++) {
+              this.queue.push(base++)
+            }
+            console.log('... add done!!')
+            return base
+          }
+        }
+      }).$mount('#app')
+      console.log(vm)
+    </script>
+  </body>
+</html>
