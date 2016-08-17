@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <h1>with functional component</h1>
+      <func-comp :msg="msg"><p>wrapped: </p></func-comp>
+      <h1>plane component</h1>
+      <comp :msg="msg"></comp>
+    </div>
+    <script>
+      const { extend } = Vue.util
+
+      const comp = {
+        props: ['child', 'msg'],
+        render (h) {
+          console.log('comp#render', this)
+          return this.child ? this.child : h('p', ['plain component: ' + this.msg])
+        }
+      }
+
+      Vue.component('func-comp', {
+        functional: true,
+        render (h, { data, props, children }) {
+          console.log('func-comp#render', data, props)
+          return children.map(child => {
+            const newData = extend({}, data)
+            newData.props = extend({}, props)
+            newData.props.child = child
+            return h(comp, newData)
+          })
+        }
+      })
+
+      const vm = new Vue({
+        data: { msg: 'hello' },
+        validators: {},
+        components: { comp }
+      }).$mount('#app')
+      console.log(vm)
+    </script>
+  </body>
+</html>
