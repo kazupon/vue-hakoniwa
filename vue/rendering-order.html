@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <comp1></comp1>
+      <func1>
+        <func3><comp1></comp1></func3>
+        <comp2></comp2>
+      </func1>
+    </div>
+    <script>
+      Vue.component('func1', {
+        functional: true,
+        render (h, { props, data, parent, children, slots }) {
+          let validation
+          if (parent.$validation) {
+            console.log('func1#render: exist validation')
+            validation = parent.$validation
+          } else {
+            console.log('func1#render: not exist validation')
+            parent.$validation = {}
+            validation = parent.$validation
+          }
+          function walkChildren (children) {
+            children.forEach(child => {
+              if (child.componentOptions && child.componentOptions.tag === 'comp1') {
+                console.log('ff')
+                child.data.validation = 'vv'
+              }
+              if (child.children) {
+                walkChildren(child.children)
+              }
+            })
+          }
+          walkChildren(children)
+          console.log('func1#render', parent, validation, children)
+          return children
+        }
+      })
+
+      Vue.component('func2', {
+        functional: true,
+        render (h, { props, data, parent, children, slots }) {
+          let valid
+          if (parent.$valid) {
+            console.log('func2#render: exist valid')
+            valid = parent.$valid
+          } else {
+            console.log('func2#render: not exist valid')
+            parent.$valid = {}
+            valid = parent.$valid
+          }
+          function walkChildren (children) {
+            children.forEach(child => {
+              if (child.componentOptions && child.componentOptions.tag === 'comp1') {
+                console.log('ff')
+                child.data.validation = 'vv'
+              }
+              if (child.children) {
+                walkChildren(child.children)
+              }
+            })
+          }
+          walkChildren(children)
+          console.log('func2#render', parent, data, valid, children)
+          return children
+        }
+      })
+
+      Vue.component('func3', {
+        functional: true,
+        render (h, { props, data, parent, children, slots }) {
+          console.log('func3#render', parent, children)
+          return children
+        }
+      })
+
+      Vue.component('comp1', {
+        render (h) {
+          console.log('comp1#render', JSON.stringify(this.$vnode.data))
+          return h('p', ['comp1'])
+        },
+        created () {
+          console.log('comp1#created', this)
+        },
+        mounted () {
+          console.log('comp1#render', this)
+        }
+      })
+
+      Vue.component('comp2', {
+        props: ['value'],
+        data () {
+          return { msg: '' }
+        },
+        template: `<div>
+          <func2 @valid="onValid">
+            <input type="text" v-model="msg">
+            <div>
+              <p>hello</p>
+              <comp1></comp1>
+            </div>
+          </func2>
+        </div>`,
+        created () {
+          console.log('comp2#created', this)
+        },
+        mounted () {
+          console.log('comp2#render', this)
+        },
+        updated () {
+          console.log('comp2#updated', this)
+        },
+        methods: {
+          onValid (e) {
+            console.log('valid')
+          }
+        }
+      })
+      const vm = new Vue({
+      }).$mount('#app')
+    </script>
+  </body>
+</html>
