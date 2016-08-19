@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>use none native: {{count1}} click(s)</p>
+      <comp @click="onClick1"></comp>
+      <p>use native: {{count2}} click(s)</p>
+      <comp @click.native="onClick2"></comp>
+    </div>
+    <script>
+      const vm = new Vue({
+        data: {
+          count1: 0,
+          count2: 0
+        },
+        components: {
+          comp: {
+            template: '<div><button>click</button></div>'
+          }
+        },
+        methods: {
+          onClick1 (e) {
+            console.log('onClick1', e)
+            this.count1++
+          },
+          onClick2 (e) {
+            console.log('onClick2', e)
+            this.count2++
+          }
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+</html>
