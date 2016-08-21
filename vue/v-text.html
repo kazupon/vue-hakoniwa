@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <h1>v-text</h1>
+      <p v-text="msg"></p>
+      <h1>{{}}</h1>
+      <p>{{msg}}</p>
+      <hr />
+      <p>{{vnode}}</p>
+    </div>
+    <script>
+      const vm = new Vue({
+        data: { msg: 'hello' },
+        computed: {
+          vnode () {
+            return this.$options.render.toString()
+          }
+        }
+      }).$mount('#app')
+      console.log(vm.$options.render.toString())
+    </script>
+  </body>
+</html>
