@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <my-component @my-event="handleThis(123, $event)"></my-component>
+    </div>
+    <script>
+      const MyComponent = {
+        data () {
+          return { counter: 0, msg: 'hello' }
+        },
+        template: `
+          <div>
+            <a href="javascript:void(0)" @click="$emit('my-event', { counter: counter++, msg: msg })">fire</a>
+          </div>
+        `
+      }
+      const vm = new Vue({
+        components: {
+          MyComponent
+        },
+        methods: {
+          handleThis (val, $args) {
+            console.log('handleThis', val, $args)
+          }
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+</html>

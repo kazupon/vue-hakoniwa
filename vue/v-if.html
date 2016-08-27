@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <input type="checkbox" v-model="show">
+      <template v-if="show">
+        <p>hello</p>
+        <p>world</p>
+      </template>
+    </div>
+    <script>
+      const vm = new Vue({
+        data: { show: true }
+      }).$mount('#app')
+    </script>
+  </body>
+</html>
