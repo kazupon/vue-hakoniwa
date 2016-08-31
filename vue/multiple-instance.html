@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <h1>Multiple instance sample</h1>
+      <p>valid: {{  valid }}</p>
+      <p>invalid: {{ invalid }}</p>
+      <p>touched : {{ touched }}</p>
+      <p>untouched : {{ untouched }}</p>
+      <p>dirty: {{ dirty }}</p>
+      <p>pristine: {{ pristine }}</p>
+      <p>modified: {{ modified }}</p>
+      <p>errors: {{ errors }}</p>
+    </div>
+    <script>
+      var validationResult = {
+        data: function () {
+          return { 
+            touched: null,
+            dirty: null,
+            modified: null,
+            errors: null,
+            validators: []
+          }
+        },
+        computed: {
+          valid: function () {
+            var ret = null;
+            if (this.validators.length === 0) { return ret }
+            ret = true
+            for (var i = 0; i < this.validators.length; i++) {
+              var validator = this.validators[i]
+              if (typeof validator === 'boolean' && !validator) {
+                ret = false
+                break
+              }
+              if (typeof validator === 'string' && validator) {
+                ret = false
+                break
+              }
+            }
+            return ret
+          },
+          invalid: function () {
+            if (this.valid === null) { return null }
+            return !this.valid
+          },
+          untouched: function () {
+            if (this.touched === null) { return null }
+            return !this.touched
+          },
+          pristine: function () {
+            if (this.dirty === null) { return null }
+            return !this.dirty
+          }
+        }
+      }
+      var ValidationResult = Vue.extend(validationResult)
+      var vm = new ValidationResult({
+        watch: {
+          invalid: function (val, old) {
+            console.log('watch#invalid', val, old)
+          }
+        }
+      }).$mount('#app')
+      vm.validators.push('required')
+    </script>
+  </body>
+</html>
