@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>msg: {{msg}}</p>
+      <pre>{{$validation}}</pre>
+      <pre>{{field1}}</pre>
+      <validation name="validation1" ref="foo">
+        <validity field="field1" ref="field1">
+          <input type="text" name="field1">
+        </validity>
+        <h1>header</h1>
+        <comp></comp>
+        <validity field="field2">
+          <input type="text" name="field2">
+        </validity>
+      </validation>
+      <comp-validation></comp-validation>
+    </div>
+    <script>
+      const { defineReactive, extend } = Vue.util
+
+      function normalizeMap (map) {
+        return Array.isArray(map)
+          ? map.map((key) => ({ key, val: key }))
+          : Object.keys(map).map((key) => ({ key, val: map[key] }))
+      }
+
+      function mapValidation (results) {
+        const res = {}
+        normalizeMap(results).forEach(({ key, val }) => {
+          console.log('normalizeMap', key, val)
+          res[key] = function mappedValidation () {
+            console.log('mappedValidation', key, val, this._isMounted)
+            const paths = val.split('.')
+            const first = paths.shift()
+            console.log('first', first)
+            const name = first.split('$')[1]
+            const field = paths.shift()
+            console.log('field', field, this.$validation)
+            if (!this._isMounted) { console.log('ffff'); return '' }
+            if (!this.$validation || !(field in this.$validation)) {
+              console.log(`[vue-validator] unknown validation: ${field}`)
+              return ''
+            } else {
+              console.log('foo')
+            }
+            const result = this.$validation[field]
+            console.log(`${field}: result`, result)
+            return result
+          }
+        })
+        return res
+      }
+
+      /*
+      Object.defineProperty(Vue.prototype, '$validation', {
+        get () { return this.__validation__ }
+      })
+*/
+
+      Vue.mixin({
+        beforeCreate () {
+          this._validation = new Validation({ host: this })
+        }
+      })
+
+      class Validation {
+        constructor (options) {
+          this._result = {}
+          this._host = options.host
+          this._committing = false
+          this._validities = Object.create(null)
+          this._watchers = Object.create(null)
+          defineReactive(this._host, '$validation', this._result)
+        }
+
+        registerField (field, validity) {
+          console.log('validation#registerField', field)
+          if (this._validities[field]) { return }
+
+          this._validities[field] = validity
+          Vue.set(this._result, field, {})
+          this._withcommit(() => {
+            this._watchValidity(field, validity)
+          })
+        }
+
+        unregisterField (field, validity) {
+          console.log('validation#unregisterField', field)
+          if (!this._validities[field]) { return }
+
+          this._unwatchValidity(field)
+          this._validities[field] = null
+          delete this._validities[field]
+          this._withcommit(() => {
+            Vue.delete(this._result, field)
+          })
+        }
+
+        _watchValidity (field, validity) {
+          this._watchers[field] = validity.$watch('result', (val, old) => {
+            console.log(`${field}.$watch: ${JSON.stringify(val)}, ${JSON.stringify(old)}`, JSON.stringify(this._result))
+            Vue.set(this._result, field, val)
+          }, { deep: true, immediate: true })
+        }
+
+        _unwatchvalidity (field) {
+          this._watchers[field]()
+          this._watchers[field] = null
+          delete this._watchers[field]
+        }
+
+        _withcommit (fn) {
+          const committing = this._committing
+          this._committing = true
+          fn()
+          this._committing = committing
+        }
+      }
+
+      Vue.component('validity-control', {
+        props: ['field', 'child', 'value'],
+        computed: {
+          result () {
+            return { hoge: this._uid }
+          }
+        },
+        render (h) {
+          console.log(`validity-control${this._uid}#render`, this.child)
+          return this.child
+        },
+        beforeCreate () {
+          console.log(`validity-control${this._uid}#beforeCreate`, this)
+        },
+        created () {
+          console.log(`validity-control${this._uid}#created`, this)
+          const validation = this.$options.propsData ? this.$options.propsData.validation : null
+          validation && validation.registerField(this.field, this)
+        },
+        mounted () {
+          console.log(`validity-control${this._uid}#mounted`, this)
+        }
+      })
+
+      Vue.component('validity', {
+        functional: true,
+        props: ['field'],
+        render (h, { data, props, children, slots, parent }) {
+          console.log('validity#render', data, props, children, parent)
+          return children.map(child => {
+            if (!child.tag) { return child }
+            const newData = extend({}, data)
+            newData.props = extend({}, props)
+            newData.props.child = child
+            return h('validity-control', newData)
+          })
+        }
+      })
+
+      /*
+      Vue.component('validation-control', {
+        props: ['name', 'tag', 'children'],
+        data () {
+          return { result: {} }
+        },
+        render (h) {
+          console.log(`validation-control${this._uid}#render`, this.children)
+          return h(this.tag, { attrs: { novalidate: '' } }, this.children)
+        },
+        beforeCreate () {
+          console.log(`validation-control${this._uid}#beforeCreate`, this)
+          // hack: define dynamic props
+          this.$options.props.hoge = { type: null }
+          this.$options.propsData.hoge = 1
+        },
+        created () {
+          console.log(`validation-control${this._uid}#created`, this)
+          this.children.forEach(child => {
+            console.log(`validation-control${this._uid}#created`, child, child.child, child.componentOptions ? child.componentOptions.propsData : null, child.componentOptions)
+            if (child.componentOptions && child.componentOptions.propsData && child.componentOptions.tag === 'validity-control') {
+              child.componentOptions.propsData.validation = this
+            }
+          })
+        },
+        mounted () {
+          console.log(`validation-control${this._uid}#mounted`, this)
+          this.children.forEach(child => {
+            console.log(`validation-control${this._uid}#mounted children`, child)
+          })
+        }
+      })
+      */
+      
+      function walkChildren (validation, children) {
+        children.forEach(child => {
+          if (child &&
+              child.componentOptions &&
+              child.componentOptions.propsData &&
+              child.componentOptions.tag === 'validity-control') {
+            child.componentOptions.propsData.validation = validation
+          }
+          child.children && walkChildren(validation, child.children)
+        })
+      }
+
+      Vue.component('validation', {
+        functional: true,
+        props: ['name', 'tag'],
+        render (h, { data, props, children, slots, parent }) {
+          console.log('validation#render', data, props, children, parent, parent.$el)
+          /*
+          const newData = extend({}, data)
+          newData.props = extend({}, props)
+          newData.props.tag = newData.props.tag || 'form'
+          newData.props.children = children
+          return h('validation-control', newData)
+          */
+          if (!parent._validation) {
+            // TODO: should be warn
+            return children
+          }
+          const tag = props.tag || 'form'
+          walkChildren(parent._validation, children)
+          return h(tag, { attrs: { novalidate: true } }, children)
+        }
+      })
+
+      //const _render = vue.prototype._render
+      //vue.prototype._render = function (...args) {
+      //  console.log(`${this._uid}#_render ...`)
+      //  const vnode = _render.call(this, ...args)
+      //  console.log(`... ${this._uid}#_render`, vnode)
+      //  return vnode
+      //}
+      const vm = new Vue({
+        computed: mapValidation({
+          field1: '$validation.field1'
+        }),
+        components: {
+          comp: {
+            template: '<p>comp</p>'
+          },
+          'comp-validation': {
+            template: `
+              <div>
+                <pre>{{$validation}}</pre>
+                <validation name="validation2">
+                  <validity field="field3">
+                    <input type="text" name="field3">
+                  </validity>
+                </validation>
+              </div>
+            `
+          }
+        },
+        data: { msg: 'hello' },
+        beforeCreate () {
+          console.log('root#beforeCreate', this)
+        },
+        created () {
+          console.log('root#created', this)
+        },
+        mounted () {
+          console.log('root#mounted', this)
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+</html>
