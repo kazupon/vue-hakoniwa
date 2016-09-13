@@ -58,12 +58,6 @@
         return res
       }
 
-      /*
-      Object.defineProperty(Vue.prototype, '$validation', {
-        get () { return this.__validation__ }
-      })
-*/
-
       Vue.mixin({
         beforeCreate () {
           this._validation = new Validation({ host: this })
@@ -163,40 +157,6 @@
         }
       })
 
-      /*
-      Vue.component('validation-control', {
-        props: ['name', 'tag', 'children'],
-        data () {
-          return { result: {} }
-        },
-        render (h) {
-          console.log(`validation-control${this._uid}#render`, this.children)
-          return h(this.tag, { attrs: { novalidate: '' } }, this.children)
-        },
-        beforeCreate () {
-          console.log(`validation-control${this._uid}#beforeCreate`, this)
-          // hack: define dynamic props
-          this.$options.props.hoge = { type: null }
-          this.$options.propsData.hoge = 1
-        },
-        created () {
-          console.log(`validation-control${this._uid}#created`, this)
-          this.children.forEach(child => {
-            console.log(`validation-control${this._uid}#created`, child, child.child, child.componentOptions ? child.componentOptions.propsData : null, child.componentOptions)
-            if (child.componentOptions && child.componentOptions.propsData && child.componentOptions.tag === 'validity-control') {
-              child.componentOptions.propsData.validation = this
-            }
-          })
-        },
-        mounted () {
-          console.log(`validation-control${this._uid}#mounted`, this)
-          this.children.forEach(child => {
-            console.log(`validation-control${this._uid}#mounted children`, child)
-          })
-        }
-      })
-      */
-      
       function walkChildren (validation, children) {
         children.forEach(child => {
           if (child &&
@@ -214,13 +174,6 @@
         props: ['name', 'tag'],
         render (h, { data, props, children, slots, parent }) {
           console.log('validation#render', data, props, children, parent, parent.$el)
-          /*
-          const newData = extend({}, data)
-          newData.props = extend({}, props)
-          newData.props.tag = newData.props.tag || 'form'
-          newData.props.children = children
-          return h('validation-control', newData)
-          */
           if (!parent._validation) {
             // TODO: should be warn
             return children
@@ -231,13 +184,6 @@
         }
       })
 
-      //const _render = vue.prototype._render
-      //vue.prototype._render = function (...args) {
-      //  console.log(`${this._uid}#_render ...`)
-      //  const vnode = _render.call(this, ...args)
-      //  console.log(`... ${this._uid}#_render`, vnode)
-      //  return vnode
-      //}
       const vm = new Vue({
         computed: mapValidation({
           field1: '$validation.field1'
