@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>msg: {{msg}}</p>
+      <pre>{{$validation.foo}}</pre>
+      <pre>{{$validation.bar}}</pre>
+    </div>
+    <script>
+      const { defineReactive, extend } = Vue.util
+      Object.defineProperty(Vue.prototype, '$validation', {
+        get () { return this.__validation__ }
+      })
+
+      Vue.mixin({
+        beforeCreate () {
+          this._validation = {}
+          Vue.util.defineReactive(this, '__validation__', this._validation)
+        }
+      })
+      const vm = new Vue({
+        data: {
+          msg: 'hello'
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+</html>
