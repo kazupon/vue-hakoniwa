@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>msg: {{msg}}</p>
+      <validity field="field1">
+        <input type="text" v-model="msg">
+      </validity>
+    </div>
+    <script>
+      const { extend } = Vue.util
+      
+      const validityControl = {
+        name: 'validity-control',
+        props: ['field', 'child'],
+        render (h) {
+          console.log(`${this._uid}#render`, this)
+          return this.child || ''
+        }
+      }
+
+      const validity = {
+        functional: true,
+        props: ['field'],
+        render (h, { props, data, children }) {
+          console.log('validity#render', props, data)
+          return children().map(child => {
+            if (child.tag) { 
+              const newData = extend({}, data)
+              newData.props = extend({}, props)
+              newData.props.child = child
+              return h(validityControl, newData)
+            }
+          })
+        }
+      }
+
+      const vm = new Vue({
+        data: {
+          msg: 'hello'
+        },
+        components: {
+          validity
+        },
+        created () {
+          console.log(`root-${this._uid}#created`, this)
+        },
+        mounted () {
+          console.log(`root-${this._uid}#mounted`, this)
+        },
+        updated () {
+          console.log(`root-${this._uid}#updated`, this)
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+  </body>
+</html>
