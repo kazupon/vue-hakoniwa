@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <pre>{{val}}</pre>
+    </div>
+    <script>
+      const { extend } = Vue.util
+
+      function getValidatorResult (validator, result) {
+        if (typeof result === 'boolean' && !result) {
+          return true
+        }
+        if (typeof result === 'string' && result) {
+          return result
+        }
+        return false
+      }
+
+      var Validity = Vue.extend({
+        data () {
+          return {
+            field: null,
+            group: null,
+            valid: true,
+            results: {
+              required: true
+            }
+          }
+        },
+        computed: {
+          invalid () { return !this.valid },
+          result () {
+            const ret = {
+              valid: this.valid,
+              invalid: this.invalid
+            }
+            const keys = Object.keys(this.results)
+            keys.forEach(validator => {
+              const result = getValidatorResult(validator, this.results[validator])
+              if (result === false) { // success
+                ret[validator] = false
+              } else { // failed
+                const error = { field: this.field, validator }
+                if (typeof result === 'string') {
+                  error.message = result
+                }
+                if (!ret.errors) {
+                  ret.errors = []
+                }
+                if (Array.isArray(ret.errors)) {
+                  ret.errors.push(error)
+                }
+                ret[validator] = result
+              }
+            })
+            return ret
+          }
+        },
+        created () {
+          this._unwatch = this.$watch('results', (val, old) => {
+            let valid = true
+            const keys = Object.keys(this.results)
+            for (let i = 0; i < keys.length; i++) {
+              const result = this.results[keys[i]]
+              if (typeof result === 'boolean' && !result) {
+                valid = false
+                break
+              }
+              if (typeof result === 'string' && result) {
+                valid = false
+                break
+              }
+            }
+            this.valid = valid
+          }, { deep: true })
+        }
+      })
+
+      var ValidityGroup = Vue.extend({
+        data () {
+          return {
+            valid: true,
+            results: {}
+          }
+        },
+        computed: {
+          invalid () { return !this.valid },
+          result () {
+            const ret = {
+              valid: this.valid,
+              invalid: this.invalid
+            }
+            const results = this.results
+            Object.keys(results).forEach(field => {
+              ret[field] = results[field]
+            })
+            return ret
+          }
+        },
+        created () {
+          this._validities = Object.create(null)
+          this.__watchers = Object.create(null)
+          this._committing = false
+          this.watchResults()
+        },
+        methods: {
+          registerField (field, validity) {
+            this._validities[field] = validity
+            this._setResults(field, {})
+            this._withCommit(() => {
+              this.__watchers[field] = validity.$watch('result', (val, old) => {
+                console.log(`validity-group: validty-${field}$watch`, val, old)
+                this._setResults(field, val)
+              }, { deep: true, immediate: true })
+            })
+          },
+          watchResults () {
+            this._unwatch = this.$watch('results', (val, old) => {
+              console.log('validity-group watch$results', val)
+              let valid = true
+              const keys = Object.keys(this.results)
+              for (let i = 0; i < keys.length; i++) {
+                const result = this.results[keys[i]]
+                if (typeof result.valid === 'boolean' && !result.valid) {
+                  valid = false
+                  break
+                }
+                if (typeof result.valid === 'string' && result.valid) {
+                  valid = false
+                  break
+                }
+              }
+              this.valid = valid
+            }, { deep: true })
+          },
+          _setResults (field, val) {
+            const newVal = {}
+            Object.keys(this.results).forEach((key) => {
+              newVal[key] = extend({}, this.results[key])
+            })
+            newVal[field] = extend({}, val)
+            this.results = newVal
+          },
+          _withCommit (fn) {
+            const committing = this._committing
+            this._committing = true
+            fn()
+            this._committing = committing
+          }
+        }
+      })
+
+      var field1 = new Validity()
+      var field2 = new Validity()
+      var field3 = new Validity()
+      var field4 = new Validity()
+      var field5 = new Validity()
+      var field6 = new Validity()
+      var root = new ValidityGroup()
+      var name1 = new ValidityGroup()
+      var name2 = new ValidityGroup()
+      var group1 = new ValidityGroup()
+      var group2 = new ValidityGroup()
+      group1.registerField('field1', field1)
+      group1.registerField('field2', field2)
+      group2.registerField('field3', field3)
+      group2.registerField('field4', field4)
+      name1.registerField('group1', group1)
+      name1.registerField('group2', group2)
+      name2.registerField('field5', field5)
+      name2.registerField('field6', field6)
+      root.registerField('name1', name1)
+      root.registerField('name2', name2)
+
+      var vm = new Vue({
+        computed: {
+          val () {
+            return root.result
+          }
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+</html>
