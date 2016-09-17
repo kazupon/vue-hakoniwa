@@ -10,13 +10,15 @@
       <p>msg: {{msg}}</p>
       <div><input type="checkbox" v-model="showComponent">show component</div>
       <div><input type="checkbox" v-model="enableAuto">Enable Auto validation</div>
-      <validate v-model="validation.field1" @valid="onValid" @invalid="onInvalid" @dirty="onDirty" @touched="onTouched" @modified="onModified" field="field1" :validators="{ required: true , minlength: 4 }" :auto="enableAuto">
-        <input type="text" @blur="onBlur" @focus="onFocus" v-model="msg">
-      </validate>
-      <p>selected: {{selected}}</p>
-      <validate v-if="showComponent" v-model="validation.field2" @valid="onValid2" field="field2" :validators="{ required: true }">
-        <my-comp :options="options" @focus="onFocus" v-model="selected"></my-comp>
-      </validate>
+      <validation name="validation1">
+        <validate v-model="validation.field1" @valid="onValid" @invalid="onInvalid" @dirty="onDirty" @touched="onTouched" @modified="onModified" field="field1" :validators="{ required: true , minlength: 4 }" :auto="enableAuto">
+          <input type="text" @blur="onBlur" @focus="onFocus" v-model="msg">
+        </validate>
+        <p>selected: {{selected}}</p>
+        <validate v-if="showComponent" v-model="validation.field2" @valid="onValid2" field="field2" :validators="{ required: true }">
+          <my-comp :options="options" @focus="onFocus" v-model="selected"></my-comp>
+        </validate>
+      </validation>
       <pre>field1 validation: {{validation.field1}}</pre>
       <pre>field2 validation: {{validation.field2}}</pre>
     </div>

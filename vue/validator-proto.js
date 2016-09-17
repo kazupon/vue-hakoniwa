@@ -430,7 +430,7 @@ const validateControl = {
 
 const vcCaches = Object.create(null)
 
-function defineValidatorControl (field, target, props) {
+function defineValidateControl (field, target, props) {
   if (vcCaches[field]) { return vcCaches[field] }
 
   let validators = props.validators
@@ -476,33 +476,34 @@ Vue.component('validate',{
       const newData = extend({}, data)
       newData.props = extend({}, props)
       newData.props.child = child
-      return h(defineValidatorControl(props.field, validateControl, props), newData)
+      return h(defineValidateControl(props.field, validateControl, props), newData)
     })
   }
 })
 
 const validatoinControl = {
   name: 'validation-control',
-  props: ['name', 'groups'],
+  props: ['name', 'groups', 'child'],
   render (h) {
     console.log(`${this.$vnode.tag}#render`, this)
-    return this._vnode
+    return this.child
   }
 }
 
 Vue.component('validation', {
   functional: true,
-  props: ['name', 'groups'],
-  render (h, { props, data, children }) {
-    console.log('validation#render', props, data)
-    return h(validatoinControl, data, children)
-    /*
-    const childs = children()
-    childs.forEach(child => {
-      console.log('validation#render', child.child)
+  props: ['tag', 'name', 'groups'],
+  render (h, { data, props, children }) {
+    console.log('validation#render', data, props)
+      /*
+    const tag = this.tag || this.$vnode.data.tag || 'form'
+    const children = this.$slots.default || []
+    children.forEach(child => {
+      console.log('foo', child, child.data)
     })
-    return childs
+    return h(tag, { staticAttrs: { novalidate: ''} }, children)
     */
+    return children()
   }
 })
 
