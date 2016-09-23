@@ -8,19 +8,48 @@
   <body>
     <form id="app">
       <input type="text" @input="onInput" @focus="onFocus" @blur="onBlur" v-model="msg">
+      <fieldset @focusin="onFocusin" @focusout="onFocusout" @change="onChange" @input="onInput">
+        <legend>radio</legend>
+        <input type="radio" name="radio1" value="one">
+        <input type="radio" name="radio1" value="two">
+      </fieldset>
+      <div @input="onInput" @change="onChange" @focusin="onFocusin" @focusout="onFocusout">
+        <input type="checkbox" name="checkbox1" value="checked1">
+        <input type="checkbox" name="checkbox2" value="checked2">
+      </div>
+      <select @input="onInput" @change="onChange">
+        <option value="1">1</option>
+        <option value="2">2</option>
+      </select>
+      <input type="file" @change="onChange" @focus="onFocus" @focusin="onFocusin" @focusout="onFocusout">
     </form>
     <script>
-      var vm = new Vue({
+      const vm = new Vue({
         data: { msg: 'hello' },
+        mounted () {
+          // inject vm instance
+          this.$el.querySelectorAll('input').forEach(el => {
+            el.vm = this
+          })
+        },
         methods: {
-          onInput: function (e) {
-            console.log('input event', e)
+          onFocus (e) {
+            console.log('focus event', e, e.target)
           },
-          onFocus: function (e) {
-            console.log('focus event', e)
+          onBlur (e) {
+            console.log('blur event', e, e.target)
           },
-          onBlur: function (e) {
-            console.log('blur event', e)
+          onInput (e) {
+            console.log('input event', e.target, e.target.value)
+          },
+          onChange (e) {
+            console.log('change event', e.target, e.target.value)
+          },
+          onFocusin (e) {
+            console.log('focusin event', e, e.target)
+          },
+          onFocusout (e) {
+            console.log('focusout event', e, e.target)
           }
         }
       }).$mount('#app')
