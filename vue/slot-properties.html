@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>msg:{{msg}}</p>
+      <comp1>
+        <p slot="slot1">named slot content1</p>
+        <div>single slot content</div>
+        <p slot="slot2">named slot content2</div></p>
+      </comp1>
+    </div>
+    <script>
+      const vm = new Vue({
+        components: {
+          comp1: {
+            template: `<div>
+              <slot>comp1</slot>
+            </div>`
+          }
+        },
+        data: {
+          msg: 'hello'
+        },
+        
+      }).$mount('#app')
+    </script>
+  </body>
+</html>
