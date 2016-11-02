@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <p>msg: {{msg}}</p>
+      <comp ref="comp" :value="msg"></comp>
+    </div>
+    <script>
+      const { extend } = Vue.util
+      const vm = new Vue({
+        data: {
+          msg: 'hello'
+        },
+        components: {
+          comp: {
+            props: ['value'],
+            data () { return { foo: 1 } },
+            watch: {
+              value: {
+                deep: true,
+                handler (val, old) {
+                  console.log('comp#watch value', JSON.stringify(val))
+                  this._dataVM.value = val
+                }
+              },
+              $data: {
+                deep: true,
+                handler (val, old) {
+                  console.log('comp#watch $data', JSON.stringify(val))
+                  Object.keys(val).forEach(key => {
+                    this._dataVM[key] = val[key]
+                  })
+                }
+              }
+            },
+            created () {
+              console.log(this.$options._propKeys)
+              let data = extend({}, { value: this.value })
+              extend(data, this.$data)
+              this._dataVM = new Vue({ data })
+              this._dataPropWatcher = this._dataVM.$watch('$data', val => {
+                console.log('_dataVM watch', JSON.stringify(val))
+              }, { deep: true, immediate: true })
+            },
+            destroyed () {
+              this._dataPropWatcher()
+            },
+            template: `
+              <div>
+                <p>value: {{value}}</p>
+                <p>$data: {{$data}}</p>
+              </div>
+            `,
+          }
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+</html>
