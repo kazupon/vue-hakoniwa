@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="../node_modules/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <input type="text" v-model="msg">
+      <comp-func>
+        <comp :msg="msg">
+        </comp>
+      </comp-func>
+    </div>
+    <script>
+      const { extend } = Vue.util
+      const vm = new Vue({
+        data: {
+          msg: 'hello'
+        },
+        components: {
+          validity: {
+            props: ['child'],
+            render (h) {
+              console.log('validity#render', this)
+              return this.child
+            },
+            methods: {
+              validate () {
+                console.log('validation ...')
+              }
+            }
+          },
+          'comp-func': {
+            functional: true,
+            render (h, { props, data, children }) {
+              console.log('comp-func', children, children[0].componentOptions)
+                /*
+              const orgProps = children[0].componentOptions.Ctor.options.props
+              //const props = extend({}, children[0].componentOptions.Ctor.options.props)
+              console.log('orgProps', orgProps)
+              const child = function () {
+                return children[0].child
+              }
+              orgProps.msg.type = String
+              orgProps.msg.validator = function (val) {
+                console.log('props validator', val, child())
+                return true
+              }
+              children[0].componentOptions.Ctor.options.props = orgProps
+              */
+              return children.map(child => {
+                if (!child.tag) { return child }
+                console.log('comp-func: child', child)
+                const newData = extend({}, data)
+                newData.props = extend({}, props)
+                newData.props.child = child
+                const newChild = h('validity', newData)
+                const orgProps = child.componentOptions.Ctor.options.props
+                const getValidityLazy = function () {
+                  return newChild.child
+                }
+                orgProps.msg.type = String
+                orgProps.msg.validator = function (val) {
+                  const rawChild = newChild.child
+                  console.log('props validator', val, rawChild)
+                  rawChild && rawChild.validate()
+                  return true
+                }
+                return newChild
+              })
+            }
+          },
+          comp: {
+            props: ['msg'],
+            render (h) {
+              console.log('comp#render', this)
+              return h('p', [this.msg])
+            },
+            beforeCreate () {
+              console.log('comp#beforeCreate', this)
+            },
+            created () {
+              console.log('comp#creatd', this)
+            },
+            mounted () {
+              console.log('comp#mounted', this)
+            }
+          }
+        }
+      }).$mount('#app')
+    </script>
+  </body>
+</html>
